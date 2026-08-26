@@ -108,7 +108,18 @@ export RELAY_AUTH_TOKEN='...'
 cargo run
 ```
 
-The exact Relay-native API expected by this adapter is documented in [`docs/relay-native-api.md`](docs/relay-native-api.md). If the existing Zyvor Relay API differs, only `src/http_backend.rs` needs to be adapted; the Google compatibility code stays unchanged.
+The exact Relay-native API expected by this adapter is documented in [`docs/relay-native-api.md`](docs/relay-native-api.md) — this is an **invented** contract (`/v1/topics`, `/v1/messages:publish|pull|ack`, etc.), not Relay's real, already-shipped API. Use it only if Relay's real API is later changed to match it.
+
+### 3. Zyvor Relay events backend — targets Relay's real API today
+
+```bash
+export RELAY_BACKEND=relay-events
+export RELAY_BASE_URL=https://relay.example.com
+export RELAY_AUTH_TOKEN='...'
+cargo run
+```
+
+Unlike the HTTP backend above, this targets Relay's real, already-shipped event-lifecycle API (`POST /v1/events`) and Action Gateway contract (`POST /v1/actions`) directly — see [`docs/RELAY_EVENTS_BACKEND.md`](docs/RELAY_EVENTS_BACKEND.md). This is the backend to use for the Fasal on-prem integration.
 
 ## Quick start with Docker Compose
 

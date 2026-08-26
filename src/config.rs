@@ -5,7 +5,28 @@ use std::net::SocketAddr;
 pub enum BackendKind {
     Memory,
     Http,
+    /// Targets Zyvor Relay's real API (POST /v1/events + Action Gateway
+    /// contract) instead of Http's invented topics/subscriptions REST
+    /// contract. See docs/RELAY_EVENTS_BACKEND.md.
+    RelayEvents,
 }
+
+/// Fixed Fasal event catalog (docs/FASAL_ACCOMMODATION.md #4.1/#4.2 in the
+/// zyvor/relay repo) — topic name is the Relay event type. Used only to
+/// pre-register topics at startup for admin-UI visibility; publish() forwards
+/// any non-actions topic to Relay regardless of catalog membership.
+pub const FASAL_CATALOG: &[&str] = &[
+    "irrigation.required",
+    "soil.moisture.critical",
+    "fertigation.required",
+    "disease.risk.critical",
+    "device.control.required",
+    "crop.advisory",
+    "weather.advisory",
+    "spray.advisory",
+    "frost.alert",
+    "pest.advisory",
+];
 
 #[derive(Debug, Clone, Parser)]
 #[command(name = "relay-pubsub")]
@@ -32,4 +53,16 @@ pub struct Config {
 
     #[arg(long, env = "RELAY_HTTP_TIMEOUT_SECONDS", default_value_t = 15)]
     pub relay_http_timeout_seconds: u64,
+
+    /// Only used by --backend relay-events.
+    #[arg(long, env = "FASAL_GCP_PROJECT", default_value = "fasal-onprem")]
+    pub fasal_gcp_project: String,
+    #[arg(long, env = "FASAL_ACTIONS_TOPIC", default_value = "farm-actions")]
+    pub fasal_actions_topic: String,
+    #[arg(
+        long,
+        env = "FASAL_ACTIONS_SUBSCRIPTION",
+        default_value = "farm-actions-sub"
+    )]
+    pub fasal_actions_subscription: String,
 }

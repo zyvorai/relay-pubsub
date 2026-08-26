@@ -106,7 +106,9 @@ impl RelayBackend for MemoryBackend {
         &self,
         mut subscription: SubscriptionSpec,
     ) -> Result<SubscriptionSpec, BackendError> {
-        if !subscription.name.starts_with("projects/") || !subscription.name.contains("/subscriptions/") {
+        if !subscription.name.starts_with("projects/")
+            || !subscription.name.contains("/subscriptions/")
+        {
             return Err(BackendError::InvalidArgument(format!(
                 "invalid subscription name {}",
                 subscription.name
@@ -122,7 +124,8 @@ impl RelayBackend for MemoryBackend {
             .ok_or_else(|| BackendError::NotFound(subscription.topic.clone()))?
             .messages
             .len();
-        subscription.ack_deadline_seconds = Self::normalize_ack_deadline(subscription.ack_deadline_seconds.max(10));
+        subscription.ack_deadline_seconds =
+            Self::normalize_ack_deadline(subscription.ack_deadline_seconds.max(10));
         let spec = subscription.clone();
         state.subscriptions.insert(
             subscription.name.clone(),
@@ -147,7 +150,10 @@ impl RelayBackend for MemoryBackend {
             .ok_or_else(|| BackendError::NotFound(name.to_string()))
     }
 
-    async fn list_subscriptions(&self, project: &str) -> Result<Vec<SubscriptionSpec>, BackendError> {
+    async fn list_subscriptions(
+        &self,
+        project: &str,
+    ) -> Result<Vec<SubscriptionSpec>, BackendError> {
         let state = self.state.read().await;
         let mut subscriptions: Vec<_> = state
             .subscriptions
@@ -167,7 +173,11 @@ impl RelayBackend for MemoryBackend {
         Ok(())
     }
 
-    async fn publish(&self, topic: &str, messages: Vec<NewMessage>) -> Result<Vec<String>, BackendError> {
+    async fn publish(
+        &self,
+        topic: &str,
+        messages: Vec<NewMessage>,
+    ) -> Result<Vec<String>, BackendError> {
         let mut state = self.state.write().await;
         let topic_state = state
             .topics
@@ -190,7 +200,11 @@ impl RelayBackend for MemoryBackend {
         Ok(ids)
     }
 
-    async fn pull(&self, subscription: &str, max_messages: u32) -> Result<Vec<Delivery>, BackendError> {
+    async fn pull(
+        &self,
+        subscription: &str,
+        max_messages: u32,
+    ) -> Result<Vec<Delivery>, BackendError> {
         let mut state = self.state.write().await;
         let mut sub = state
             .subscriptions
@@ -235,7 +249,9 @@ impl RelayBackend for MemoryBackend {
                     break;
                 };
 
-                if sub.acked.contains(&index) || sub.inflight.values().any(|v| v.topic_index == index) {
+                if sub.acked.contains(&index)
+                    || sub.inflight.values().any(|v| v.topic_index == index)
+                {
                     continue;
                 }
 
@@ -246,11 +262,16 @@ impl RelayBackend for MemoryBackend {
                 if let Some(dlq) = &sub.spec.dead_letter {
                     let max = dlq.max_delivery_attempts.clamp(5, 100);
                     if current_attempt > max {
-                        let original = state.topics.get(&topic_name).unwrap().messages[index].clone();
+                        let original =
+                            state.topics.get(&topic_name).unwrap().messages[index].clone();
                         if let Some(dead_topic) = state.topics.get_mut(&dlq.topic) {
                             let mut attributes = original.attributes.clone();
-                            attributes.insert("x-zyvor-dead-letter-source".into(), subscription.to_string());
-                            attributes.insert("x-zyvor-original-message-id".into(), original.id.clone());
+                            attributes.insert(
+                                "x-zyvor-dead-letter-source".into(),
+                                subscription.to_string(),
+                            );
+                            attributes
+                                .insert("x-zyvor-original-message-id".into(), original.id.clone());
                             dead_topic.messages.push(RelayMessage {
                                 id: Uuid::new_v4().to_string(),
                                 data: original.data,
@@ -288,7 +309,11 @@ impl RelayBackend for MemoryBackend {
         result
     }
 
-    async fn acknowledge(&self, subscription: &str, ack_ids: &[String]) -> Result<(), BackendError> {
+    async fn acknowledge(
+        &self,
+        subscription: &str,
+        ack_ids: &[String],
+    ) -> Result<(), BackendError> {
         let mut state = self.state.write().await;
         let sub = state
             .subscriptions
@@ -331,7 +356,11 @@ impl RelayBackend for MemoryBackend {
         Ok(())
     }
 
-    async fn seek_to_time(&self, subscription: &str, time: DateTime<Utc>) -> Result<(), BackendError> {
+    async fn seek_to_time(
+        &self,
+        subscription: &str,
+        time: DateTime<Utc>,
+    ) -> Result<(), BackendError> {
         let mut state = self.state.write().await;
         let topic_name = state
             .subscriptions
@@ -366,7 +395,11 @@ mod tests {
     use std::collections::HashMap;
 
     fn topic(name: &str) -> TopicSpec {
-        TopicSpec { name: name.into(), labels: HashMap::new(), kms_key_name: String::new() }
+        TopicSpec {
+            name: name.into(),
+            labels: HashMap::new(),
+            kms_key_name: String::new(),
+        }
     }
 
     fn subscription(name: &str, topic: &str) -> SubscriptionSpec {
@@ -389,12 +422,28 @@ mod tests {
         let topic_name = "projects/demo/topics/orders";
         let sub_name = "projects/demo/subscriptions/orders-worker";
         backend.create_topic(topic(topic_name)).await.unwrap();
-        backend.create_subscription(subscription(sub_name, topic_name)).await.unwrap();
-        backend.publish(topic_name, vec![NewMessage { data: b"hello".to_vec(), attributes: HashMap::new(), ordering_key: String::new() }]).await.unwrap();
+        backend
+            .create_subscription(subscription(sub_name, topic_name))
+            .await
+            .unwrap();
+        backend
+            .publish(
+                topic_name,
+                vec![NewMessage {
+                    data: b"hello".to_vec(),
+                    attributes: HashMap::new(),
+                    ordering_key: String::new(),
+                }],
+            )
+            .await
+            .unwrap();
         let deliveries = backend.pull(sub_name, 10).await.unwrap();
         assert_eq!(deliveries.len(), 1);
         assert_eq!(deliveries[0].message.data, b"hello");
-        backend.acknowledge(sub_name, &[deliveries[0].ack_id.clone()]).await.unwrap();
+        backend
+            .acknowledge(sub_name, &[deliveries[0].ack_id.clone()])
+            .await
+            .unwrap();
         assert!(backend.pull(sub_name, 10).await.unwrap().is_empty());
     }
 
@@ -404,10 +453,26 @@ mod tests {
         let topic_name = "projects/demo/topics/jobs";
         let sub_name = "projects/demo/subscriptions/jobs-worker";
         backend.create_topic(topic(topic_name)).await.unwrap();
-        backend.create_subscription(subscription(sub_name, topic_name)).await.unwrap();
-        backend.publish(topic_name, vec![NewMessage { data: b"job".to_vec(), attributes: HashMap::new(), ordering_key: String::new() }]).await.unwrap();
+        backend
+            .create_subscription(subscription(sub_name, topic_name))
+            .await
+            .unwrap();
+        backend
+            .publish(
+                topic_name,
+                vec![NewMessage {
+                    data: b"job".to_vec(),
+                    attributes: HashMap::new(),
+                    ordering_key: String::new(),
+                }],
+            )
+            .await
+            .unwrap();
         let first = backend.pull(sub_name, 1).await.unwrap().remove(0);
-        backend.modify_ack_deadline(sub_name, &[first.ack_id], 0).await.unwrap();
+        backend
+            .modify_ack_deadline(sub_name, &[first.ack_id], 0)
+            .await
+            .unwrap();
         let second = backend.pull(sub_name, 1).await.unwrap().remove(0);
         assert_eq!(second.delivery_attempt, 2);
     }
@@ -421,21 +486,53 @@ mod tests {
         backend.create_topic(topic(source)).await.unwrap();
         backend.create_topic(topic(dlq)).await.unwrap();
         let mut sub = subscription(sub_name, source);
-        sub.dead_letter = Some(DeadLetterSpec { topic: dlq.into(), max_delivery_attempts: 5 });
+        sub.dead_letter = Some(DeadLetterSpec {
+            topic: dlq.into(),
+            max_delivery_attempts: 5,
+        });
         backend.create_subscription(sub).await.unwrap();
-        backend.publish(source, vec![NewMessage { data: b"poison".to_vec(), attributes: HashMap::new(), ordering_key: String::new() }]).await.unwrap();
+        backend
+            .publish(
+                source,
+                vec![NewMessage {
+                    data: b"poison".to_vec(),
+                    attributes: HashMap::new(),
+                    ordering_key: String::new(),
+                }],
+            )
+            .await
+            .unwrap();
         for _ in 0..5 {
             let d = backend.pull(sub_name, 1).await.unwrap().remove(0);
-            backend.modify_ack_deadline(sub_name, &[d.ack_id], 0).await.unwrap();
+            backend
+                .modify_ack_deadline(sub_name, &[d.ack_id], 0)
+                .await
+                .unwrap();
         }
         assert!(backend.pull(sub_name, 1).await.unwrap().is_empty());
         let dlq_sub = "projects/demo/subscriptions/dlq-reader";
-        backend.create_subscription(subscription(dlq_sub, dlq)).await.unwrap();
+        backend
+            .create_subscription(subscription(dlq_sub, dlq))
+            .await
+            .unwrap();
         // Subscriptions receive messages published after creation, so publish another forced DLQ sequence.
-        backend.publish(source, vec![NewMessage { data: b"poison2".to_vec(), attributes: HashMap::new(), ordering_key: String::new() }]).await.unwrap();
+        backend
+            .publish(
+                source,
+                vec![NewMessage {
+                    data: b"poison2".to_vec(),
+                    attributes: HashMap::new(),
+                    ordering_key: String::new(),
+                }],
+            )
+            .await
+            .unwrap();
         for _ in 0..5 {
             let d = backend.pull(sub_name, 1).await.unwrap().remove(0);
-            backend.modify_ack_deadline(sub_name, &[d.ack_id], 0).await.unwrap();
+            backend
+                .modify_ack_deadline(sub_name, &[d.ack_id], 0)
+                .await
+                .unwrap();
         }
         let _ = backend.pull(sub_name, 1).await.unwrap();
         assert_eq!(backend.pull(dlq_sub, 10).await.unwrap().len(), 1);
