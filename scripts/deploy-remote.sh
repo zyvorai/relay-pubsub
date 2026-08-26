@@ -346,6 +346,10 @@ fi
 
 if [ "$PKG" = "apt-get" ]; then
     pkg_install apt-get install -y -qq build-essential pkg-config curl git ca-certificates
+elif [ "$PKG" = "dnf" ]; then
+    # RHEL9/Rocky9/Alma9 ship curl-minimal by default; installing the full
+    # curl package conflicts with it unless dnf may swap it out.
+    pkg_install dnf install -y --allowerasing gcc make pkgconfig curl git ca-certificates
 else
     pkg_install "$PKG" install -y gcc make pkgconfig curl git ca-certificates
 fi
