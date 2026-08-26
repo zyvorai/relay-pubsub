@@ -1,3 +1,6 @@
+// Copyright 2026 Zyvor AI Labs
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::backend::{BackendError, RelayBackend};
 use crate::metrics::Metrics;
 use crate::model::{DeadLetterSpec, Delivery, NewMessage, RetrySpec, SubscriptionSpec, TopicSpec};

@@ -1,3 +1,6 @@
+// Copyright 2026 Zyvor AI Labs
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::model::{Delivery, NewMessage, SubscriptionSpec, TopicSpec};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};

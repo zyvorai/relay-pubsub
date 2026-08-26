@@ -1,3 +1,6 @@
+// Copyright 2026 Zyvor AI Labs
+// SPDX-License-Identifier: Apache-2.0
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

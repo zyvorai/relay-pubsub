@@ -1,3 +1,6 @@
+// Copyright 2026 Zyvor AI Labs
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::backend::{BackendError, RelayBackend};
 use crate::google::pubsub::v1::{
     publisher_server::Publisher, seek_request, subscriber_server::Subscriber, AcknowledgeRequest,

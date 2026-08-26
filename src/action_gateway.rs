@@ -1,3 +1,6 @@
+// Copyright 2026 Zyvor AI Labs
+// SPDX-License-Identifier: Apache-2.0
+
 //! Implements Zyvor Relay's Action Gateway HTTP contract
 //! (`POST /v1/actions` + required `Idempotency-Key`): Relay calls this to
 //! deliver a command, which is queued as a Pub/Sub message on the actions

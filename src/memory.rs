@@ -1,3 +1,6 @@
+// Copyright 2026 Zyvor AI Labs
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::backend::{BackendError, RelayBackend};
 use crate::model::{Delivery, NewMessage, RelayMessage, SubscriptionSpec, TopicSpec};
 use async_trait::async_trait;

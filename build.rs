@@ -1,3 +1,6 @@
+// Copyright 2026 Zyvor AI Labs
+// SPDX-License-Identifier: Apache-2.0
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let protoc = protoc_bin_vendored::protoc_bin_path()?;
     let include = protoc_bin_vendored::include_path()?;

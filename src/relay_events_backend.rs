@@ -1,3 +1,6 @@
+// Copyright 2026 Zyvor AI Labs
+// SPDX-License-Identifier: Apache-2.0
+
 //! RelayEventsBackend targets Zyvor Relay's real, already-shipped API
 //! (event-lifecycle shaped: `POST /v1/events`) instead of the invented
 //! topics/subscriptions REST contract `http_backend.rs` speaks. See
