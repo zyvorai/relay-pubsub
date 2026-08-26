@@ -45,3 +45,9 @@ The exact schema Fasal's own publishing code produces is not yet confirmed again
 cargo test --release relay_events_backend
 cargo test --release action_gateway
 ```
+
+`publish_all_catalog_event_types` covers all 10 `FASAL_CATALOG` entries, not just `irrigation.required`. For a real end-to-end check against a running Relay + this binary:
+
+```bash
+BASE=http://127.0.0.1:8080 GATEWAY=http://127.0.0.1:8083 ./scripts/fasal-catalog-smoke.sh
+```

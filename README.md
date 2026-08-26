@@ -234,11 +234,13 @@ For production, place identity-aware authentication in front of the gateway (OID
 .
 ├── proto/google/pubsub/v1/pubsub.proto
 ├── src/
-│   ├── backend.rs          # vendor-neutral RelayBackend trait
-│   ├── memory.rs           # runnable demo backend + tests
-│   ├── http_backend.rs     # adapter into Zyvor Relay native API
-│   ├── grpc.rs             # Google Pub/Sub gRPC compatibility
-│   ├── rest.rs             # Google REST + admin endpoints
+│   ├── backend.rs               # vendor-neutral RelayBackend trait
+│   ├── memory.rs                # runnable demo backend + tests
+│   ├── http_backend.rs          # adapter into invented Relay-native API
+│   ├── relay_events_backend.rs  # adapter into Relay's real API (docs/RELAY_EVENTS_BACKEND.md)
+│   ├── action_gateway.rs        # POST /v1/actions receiver for relay-events
+│   ├── grpc.rs                  # Google Pub/Sub gRPC compatibility
+│   ├── rest.rs                  # Google REST + admin endpoints
 │   ├── metrics.rs
 │   └── main.rs
 ├── ui/                     # React/Vite Relay console
@@ -248,7 +250,7 @@ For production, place identity-aware authentication in front of the gateway (OID
 ├── deploy/scripts/         # k3s install/deploy/e2e-verify scripts
 ├── docs/DEPLOYMENT.md      # full deploy reference + live-instance record
 ├── examples/
-└── scripts/                # deploy-remote.sh, selftest.sh, smoke.sh
+└── scripts/                # deploy-remote.sh, selftest.sh, smoke.sh, fasal-catalog-smoke.sh
 ```
 
 ## Important production boundary
@@ -279,3 +281,7 @@ zyvorai/relay-pubsub          # this repository
 ```
 
 As Kafka, NATS, MQTT, SQS/SNS or Azure Service Bus adapters are added, extract the reusable auth/tenant/metrics/backend pieces into `relay-gateway` without contaminating Relay core with vendor-specific APIs.
+
+## License
+
+[Apache-2.0](LICENSE) · Copyright 2026 Zyvor AI Labs

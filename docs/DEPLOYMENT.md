@@ -74,11 +74,12 @@ Run `bash scripts/deploy-remote.sh --help` for the full flag list, and `make dep
 |---|---|---|
 | `PUBSUB_GRPC_ADDR` | `0.0.0.0:50051` | gRPC listener (Google Pub/Sub compatible API) |
 | `PUBSUB_HTTP_ADDR` | `0.0.0.0:8080` | REST/admin listener, also serves `/healthz`, `/readyz`, `/metrics` |
-| `RELAY_BACKEND` | `memory` | `memory` (self-contained demo) or `http` (production Relay adapter) |
-| `RELAY_BASE_URL` | `http://relay:9090` | Only used when `RELAY_BACKEND=http` |
-| `RELAY_AUTH_TOKEN` | *(empty = none)* | Bearer token sent to the Relay backend when `RELAY_BACKEND=http` |
+| `RELAY_BACKEND` | `memory` | `memory` (self-contained demo), `http` (invented topics/subscriptions contract), or `relay-events` (Relay's real API — see [RELAY_EVENTS_BACKEND.md](RELAY_EVENTS_BACKEND.md)) |
+| `RELAY_BASE_URL` | `http://relay:9090` | Only used when `RELAY_BACKEND=http` or `relay-events` |
+| `RELAY_AUTH_TOKEN` | *(empty = none)* | Bearer token sent to the Relay backend when `RELAY_BACKEND=http` or `relay-events` |
 | `RELAY_HTTP_TIMEOUT_SECONDS` | `15` | HTTP client timeout to the Relay backend |
 | `RELAY_PUBSUB_AUTH_TOKEN` | *(empty = none)* | If set, gateway requires `Authorization: Bearer <token>` on all `/v1/*` and `/admin/*` requests |
+| `FASAL_GCP_PROJECT` / `FASAL_ACTIONS_TOPIC` / `FASAL_ACTIONS_SUBSCRIPTION` | `fasal-onprem` / `farm-actions` / `farm-actions-sub` | Only used when `RELAY_BACKEND=relay-events` |
 
 #### Port already in use on the target host?
 
