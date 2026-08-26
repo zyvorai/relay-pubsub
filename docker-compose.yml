@@ -1,0 +1,22 @@
+services:
+  gateway:
+    build: .
+    environment:
+      RELAY_BACKEND: memory
+      RUST_LOG: info,tower_http=info
+    ports:
+      - "50051:50051"
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  ui:
+    build:
+      context: ./ui
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway

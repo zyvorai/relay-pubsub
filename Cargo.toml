@@ -1,0 +1,38 @@
+[package]
+name = "relay-pubsub"
+version = "0.1.0"
+edition = "2021"
+description = "Google Cloud Pub/Sub compatibility gateway for Zyvor Relay"
+license = "Apache-2.0"
+repository = "https://github.com/zyvorai/relay-pubsub"
+
+[dependencies]
+async-trait = "0.1"
+axum = { version = "0.7", features = ["macros"] }
+base64 = "0.22"
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4", features = ["derive", "env"] }
+futures = "0.3"
+http = "1"
+prometheus = "0.13"
+prost = "0.13"
+prost-types = "0.13"
+rand = "0.8"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync", "time", "net"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+tonic = { version = "0.12", features = ["transport"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+
+[build-dependencies]
+protoc-bin-vendored = "3"
+tonic-build = "0.12"
+
+[dev-dependencies]
+serde_json = "1"

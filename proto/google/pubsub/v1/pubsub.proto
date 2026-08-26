@@ -1,0 +1,154 @@
+syntax = "proto3";
+
+package google.pubsub.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+service Publisher {
+  rpc CreateTopic(Topic) returns (Topic);
+  rpc GetTopic(GetTopicRequest) returns (Topic);
+  rpc ListTopics(ListTopicsRequest) returns (ListTopicsResponse);
+  rpc DeleteTopic(DeleteTopicRequest) returns (Empty);
+  rpc Publish(PublishRequest) returns (PublishResponse);
+}
+
+service Subscriber {
+  rpc CreateSubscription(Subscription) returns (Subscription);
+  rpc GetSubscription(GetSubscriptionRequest) returns (Subscription);
+  rpc ListSubscriptions(ListSubscriptionsRequest) returns (ListSubscriptionsResponse);
+  rpc DeleteSubscription(DeleteSubscriptionRequest) returns (Empty);
+  rpc Pull(PullRequest) returns (PullResponse);
+  rpc StreamingPull(stream StreamingPullRequest) returns (stream StreamingPullResponse);
+  rpc Acknowledge(AcknowledgeRequest) returns (Empty);
+  rpc ModifyAckDeadline(ModifyAckDeadlineRequest) returns (Empty);
+  rpc Seek(SeekRequest) returns (SeekResponse);
+}
+
+message Empty {}
+
+message Topic {
+  string name = 1;
+  map<string, string> labels = 2;
+  string kms_key_name = 5;
+}
+
+message PubsubMessage {
+  bytes data = 1;
+  map<string, string> attributes = 2;
+  string message_id = 3;
+  google.protobuf.Timestamp publish_time = 4;
+  string ordering_key = 5;
+}
+
+message PublishRequest {
+  string topic = 1;
+  repeated PubsubMessage messages = 2;
+}
+
+message PublishResponse {
+  repeated string message_ids = 1;
+}
+
+message GetTopicRequest { string topic = 1; }
+message DeleteTopicRequest { string topic = 1; }
+message ListTopicsRequest {
+  string project = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+message ListTopicsResponse {
+  repeated Topic topics = 1;
+  string next_page_token = 2;
+}
+
+message PushConfig {
+  string push_endpoint = 1;
+  map<string, string> attributes = 2;
+}
+
+message DeadLetterPolicy {
+  string dead_letter_topic = 1;
+  int32 max_delivery_attempts = 2;
+}
+
+message RetryPolicy {
+  google.protobuf.Duration minimum_backoff = 1;
+  google.protobuf.Duration maximum_backoff = 2;
+}
+
+message Subscription {
+  string name = 1;
+  string topic = 2;
+  PushConfig push_config = 4;
+  int32 ack_deadline_seconds = 5;
+  bool retain_acked_messages = 7;
+  map<string, string> labels = 9;
+  bool enable_message_ordering = 10;
+  DeadLetterPolicy dead_letter_policy = 13;
+  RetryPolicy retry_policy = 14;
+  bool detached = 15;
+  bool enable_exactly_once_delivery = 16;
+}
+
+message GetSubscriptionRequest { string subscription = 1; }
+message DeleteSubscriptionRequest { string subscription = 1; }
+message ListSubscriptionsRequest {
+  string project = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+message ListSubscriptionsResponse {
+  repeated Subscription subscriptions = 1;
+  string next_page_token = 2;
+}
+
+message PullRequest {
+  string subscription = 1;
+  bool return_immediately = 2;
+  int32 max_messages = 3;
+}
+
+message ReceivedMessage {
+  string ack_id = 1;
+  PubsubMessage message = 2;
+  int32 delivery_attempt = 3;
+}
+
+message PullResponse { repeated ReceivedMessage received_messages = 1; }
+
+message AcknowledgeRequest {
+  string subscription = 1;
+  repeated string ack_ids = 2;
+}
+
+message ModifyAckDeadlineRequest {
+  string subscription = 1;
+  repeated string ack_ids = 2;
+  int32 ack_deadline_seconds = 3;
+}
+
+message StreamingPullRequest {
+  string subscription = 1;
+  repeated string ack_ids = 2;
+  repeated int32 modify_deadline_seconds = 3;
+  repeated string modify_deadline_ack_ids = 4;
+  int32 stream_ack_deadline_seconds = 5;
+  string client_id = 6;
+  int64 max_outstanding_messages = 7;
+  int64 max_outstanding_bytes = 8;
+}
+
+message StreamingPullResponse {
+  repeated ReceivedMessage received_messages = 1;
+}
+
+message SeekRequest {
+  string subscription = 1;
+  oneof target {
+    google.protobuf.Timestamp time = 2;
+    string snapshot = 3;
+  }
+}
+
+message SeekResponse {}

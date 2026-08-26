@@ -1,0 +1,50 @@
+# Reference manifest for a real Relay backend deployment: always assumes
+# RELAY_BACKEND=http and requires the relay-pubsub-secrets/relay-token secret
+# to exist. For a self-contained (memory backend, no secret) smoke-test
+# deployment, use deploy/helm/relay-pubsub with --set relay.backend=memory
+# instead (see deploy/scripts/deploy-k3s.sh).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: relay-pubsub
+  labels: { app.kubernetes.io/name: relay-pubsub, app.kubernetes.io/part-of: zyvor-relay }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app.kubernetes.io/name: relay-pubsub }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: relay-pubsub }
+    spec:
+      containers:
+        - name: gateway
+          image: ghcr.io/zyvorai/relay-pubsub:latest
+          ports:
+            - { name: grpc, containerPort: 50051 }
+            - { name: http, containerPort: 8080 }
+          env:
+            - { name: RELAY_BACKEND, value: http }
+            - { name: RELAY_BASE_URL, value: "http://relay.zyvor-system.svc:9090" }
+            - name: RELAY_AUTH_TOKEN
+              valueFrom: { secretKeyRef: { name: relay-pubsub-secrets, key: relay-token } }
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: "2", memory: 1Gi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: relay-pubsub
+spec:
+  selector: { app.kubernetes.io/name: relay-pubsub }
+  ports:
+    - { name: grpc, port: 50051, targetPort: grpc }
+    - { name: http, port: 8080, targetPort: http }

@@ -1,0 +1,21 @@
+replicaCount: 2
+image:
+  repository: ghcr.io/zyvorai/relay-pubsub
+  tag: latest
+  pullPolicy: IfNotPresent
+relay:
+  backend: http
+  baseUrl: http://relay.zyvor-system.svc:9090
+  existingSecret: relay-pubsub-secrets
+  tokenKey: relay-token
+gatewayAuth:
+  enabled: false
+  existingSecret: relay-pubsub-secrets
+  tokenKey: gateway-token
+service:
+  type: ClusterIP
+  grpcPort: 50051
+  httpPort: 8080
+resources:
+  requests: { cpu: 100m, memory: 128Mi }
+  limits: { cpu: "2", memory: 1Gi }
