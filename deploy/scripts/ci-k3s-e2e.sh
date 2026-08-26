@@ -6,15 +6,37 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 NAMESPACE="${NAMESPACE:-relay-pubsub}"
-LOCAL_PORT="${LOCAL_PORT:-18080}"
 
 export KUBECONFIG="${KUBECONFIG:-${HOME}/.kube/config}"
 
 echo "=== ci-k3s-e2e ==="
 kubectl -n "${NAMESPACE}" rollout status deployment/relay-pubsub --timeout=180s
 
-kubectl -n "${NAMESPACE}" port-forward svc/relay-pubsub "${LOCAL_PORT}:8080" >/tmp/relay-pubsub-port-forward.log 2>&1 &
-PF_PID=$!
+# Try a small set of local ports for the port-forward — the host running this
+# (a developer machine, CI runner, or a shared box) may already have
+# something bound to any single hardcoded port, as seen when :18080 was
+# already in use by an unrelated process during testing.
+PORT_CANDIDATES=("${LOCAL_PORT:-18080}" 28080 38080 48080 58080)
+PF_PID=""
+LOCAL_PORT=""
+for candidate in "${PORT_CANDIDATES[@]}"; do
+    rm -f /tmp/relay-pubsub-port-forward.log
+    kubectl -n "${NAMESPACE}" port-forward "svc/relay-pubsub" "${candidate}:8080" >/tmp/relay-pubsub-port-forward.log 2>&1 &
+    pid=$!
+    sleep 1
+    if kill -0 "${pid}" 2>/dev/null && ! grep -qi "address already in use" /tmp/relay-pubsub-port-forward.log; then
+        PF_PID="${pid}"
+        LOCAL_PORT="${candidate}"
+        break
+    fi
+    kill "${pid}" 2>/dev/null || true
+    wait "${pid}" 2>/dev/null || true
+done
+if [ -z "${LOCAL_PORT}" ]; then
+    echo "ERROR: could not find a free local port for port-forward (tried: ${PORT_CANDIDATES[*]})"
+    exit 1
+fi
+echo "Using local port ${LOCAL_PORT} for port-forward"
 trap 'kill "${PF_PID}" 2>/dev/null || true' EXIT
 
 echo "Waiting for port-forward + health..."

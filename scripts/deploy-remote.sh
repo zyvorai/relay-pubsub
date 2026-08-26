@@ -72,9 +72,9 @@ Examples:
   $0 10.0.0.5 root --verify-only
   make deploy-remote-quick H=10.0.0.5 U=root
 
-Fleet file (one host per line):
-  host user [password] [opts]
-  user@host root --quick
+Fleet file (one host per line, key auth only — no password field):
+  host user [opts]
+  user@host [opts]
 EOF
 }
 
@@ -214,7 +214,9 @@ _rsync() {
 }
 
 validate() {
-    [ -n "${TARGET_HOST}" ] || { usage; exit 1; }
+    if [ -z "${FLEET_FILE}" ]; then
+        [ -n "${TARGET_HOST}" ] || { usage; exit 1; }
+    fi
     [ -f "${PROJECT_DIR}/Cargo.toml" ] || fail "Not in relay-pubsub repo: ${PROJECT_DIR}"
     if [ -n "${TARGET_PASS}" ]; then
         warn "Password auth is deprecated. Prefer: ssh-copy-id ${TARGET_USER}@${TARGET_HOST}"
@@ -488,16 +490,23 @@ deploy_fleet() {
     [ -f "$hosts_file" ] || fail "Fleet file not found: $hosts_file"
     chmod 600 "$hosts_file" 2>/dev/null || true
     local count=0
-    while IFS=' ' read -r host user pass opts; do
+    # Fleet lines are key-auth only (password auth is deprecated everywhere
+    # else in this script too) — this keeps the field count fixed at
+    # "host user [opts...]" / "user@host [opts...]" with no ambiguous
+    # password slot for `read` to misassign a flag into.
+    while IFS=' ' read -r host user opts; do
         [ -z "$host" ] && continue
         [[ "$host" =~ ^# ]] && continue
         count=$((count + 1))
         TARGET_HOST="$host"
         TARGET_USER="${user:-root}"
-        TARGET_PASS="${pass:-}"
+        TARGET_PASS=""
         if [[ "$host" == *"@"* ]]; then
             TARGET_USER="${host%%@*}"
             TARGET_HOST="${host#*@}"
+            # With the combined user@host form, whatever `read` put in $user
+            # is actually the first opts token (or empty).
+            opts="${user}${opts:+ $opts}"
         fi
         STEP_IDX=0
         print_banner
