@@ -257,8 +257,9 @@ impl RelayBackend for RelayEventsBackend {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::FASAL_CATALOG;
     use std::collections::HashMap;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{body_partial_json, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     fn msg(data: &[u8], attrs: &[(&str, &str)]) -> NewMessage {
@@ -300,6 +301,45 @@ mod tests {
             )
             .await;
         assert!(result.is_ok(), "{result:?}");
+    }
+
+    /// Proves every entry in the fixed Fasal catalog
+    /// (docs/FASAL_ACCOMMODATION.md #4.1/#4.2 in zyvor/relay, mirrored in
+    /// FASAL_CATALOG) maps correctly — not just the one representative type
+    /// (irrigation.required) the other tests exercise. publish() doesn't
+    /// gate on catalog membership, so this also covers the general case.
+    #[tokio::test]
+    async fn publish_all_catalog_event_types() {
+        for event_type in FASAL_CATALOG {
+            let relay = MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/v1/events"))
+                .and(body_partial_json(serde_json::json!({"type": event_type})))
+                .respond_with(ResponseTemplate::new(202))
+                .expect(1)
+                .mount(&relay)
+                .await;
+
+            let backend = RelayEventsBackend::new(
+                relay.uri(),
+                None,
+                Duration::from_secs(5),
+                "projects/fasal-onprem/topics/farm-actions",
+            )
+            .unwrap();
+
+            let result = backend
+                .publish(
+                    &format!("projects/fasal-onprem/topics/{event_type}"),
+                    vec![msg(
+                        br#"{"zone":"A4"}"#,
+                        &[("severity", "critical"), ("source", "fasal")],
+                    )],
+                )
+                .await;
+            assert!(result.is_ok(), "{event_type}: {result:?}");
+            relay.verify().await;
+        }
     }
 
     #[tokio::test]
