@@ -4,9 +4,10 @@
 
 | Host | User | HTTP | gRPC | Backend | Notes |
 |---|---|---|---|---|---|
-| `212.8.248.187` | `sus` | `8081` (HTTPS) | `50061` (gRPCS) | `memory` | Non-default ports — host already runs nginx on `:8080` and a `machina-agent` process on `:50051`. Gateway terminates TLS itself (self-signed cert, generated at `/var/lib/relay-pubsub/tls/`) — no reverse proxy in front. Deployed via the full remote-build profile (`bash scripts/deploy-remote.sh 212.8.248.187 sus`), verified with `scripts/selftest.sh` (9/9 pass) and `scripts/smoke.sh` run externally against `https://212.8.248.187:8081` (self-signed cert — `curl -k`). |
+| `212.8.248.187` | `sus` | `8081` (HTTPS) | `50061` (gRPCS) | `relay-events` | Non-default ports — host already runs nginx on `:8080` and a `machina-agent` process on `:50051`. Gateway terminates TLS itself (self-signed cert, generated at `/var/lib/relay-pubsub/tls/`) — no reverse proxy in front. Deployed via the full remote-build profile (`bash scripts/deploy-remote.sh 212.8.248.187 sus`), verified with `scripts/selftest.sh` (9/9 pass) and `scripts/smoke.sh` run externally against `https://212.8.248.187:8081` (self-signed cert — `curl -k`). **`RELAY_BACKEND` was switched from `memory` to `relay-events` directly on the host (outside `deploy-remote.sh`/this repo's tooling) — `/etc/relay-pubsub/relay-pubsub.env` now points at a real Relay instance also running on this host at `https://127.0.0.1:18080` (`RELAY_TLS_INSECURE=1`, real bearer token), with the full 11-topic Fasal catalog registered under `projects/fasal-onprem`. Gateway's own `RELAY_PUBSUB_AUTH_TOKEN` is empty — the REST/gRPC API is unauthenticated to anyone who can reach the host's ports.** |
+| `212.8.248.187` | `sus` | `8082` (HTTPS, static console) | — | n/a | `ui/` ops console, deployed as its own standalone unit — see [Ops console](#ops-console) below. Independent of the gateway's systemd unit/process. |
 
-To manage this instance:
+To manage the gateway on this instance:
 
 ```bash
 ssh sus@212.8.248.187 systemctl status relay-pubsub     # check status
@@ -17,7 +18,28 @@ make deploy-remote-quick H=212.8.248.187 U=sus            # redeploy (rebuilds l
 make deploy-remote-uninstall H=212.8.248.187 U=sus        # remove entirely
 ```
 
-Update this table whenever a new host is deployed to or an existing one is decommissioned — it's the source of truth for "what's actually running where."
+Update this table whenever a new host is deployed to or an existing one is decommissioned — it's the source of truth for "what's actually running where." (The `relay-events` switch above is a case in point: it happened outside this repo's tooling and this table would have gone stale silently otherwise.)
+
+## Ops console
+
+`ui/` is a React/Vite console (topic/subscription management, publish, pull/ack, a live-receive polling toggle, and an activity log) that talks to the gateway's `/admin/v1/*` REST API. It's deployed **independently of the gateway** — its own systemd unit, own port, own self-signed cert — via `scripts/deploy-console-remote.sh`:
+
+```bash
+bash scripts/deploy-console-remote.sh <host> <user> [--api-base URL] [--project NAME] [--port PORT]
+# e.g. currently deployed as:
+bash scripts/deploy-console-remote.sh 212.8.248.187 sus   # defaults: api-base https://212.8.248.187:8081, project projects/fasal-onprem, port 8082
+```
+
+It builds `ui/dist` locally (`VITE_API_BASE`/`VITE_PROJECT` baked in at build time — Vite env vars are compile-time, not runtime), rsyncs it to `/opt/relay-pubsub-console/dist` on the target host, and serves it via `http-server` (installed via `npm install` on the host, no global/system package) over HTTPS with a self-signed cert generated once via `openssl` at `/var/lib/relay-pubsub-console/tls/`, running as a dedicated `relay-console` system user under `relay-pubsub-console.service`.
+
+```bash
+ssh sus@212.8.248.187 systemctl status relay-pubsub-console
+ssh sus@212.8.248.187 sudo systemctl restart relay-pubsub-console
+ssh sus@212.8.248.187 sudo journalctl -u relay-pubsub-console -f
+curl -k https://212.8.248.187:8082/
+```
+
+**No auth, no firewall** — deliberately deprioritized when this was set up. Anyone who can reach port `8082` gets a fully functional admin UI against the real Fasal-tenant Relay backend (see the gateway row above). Revisit if this needs to be locked down later.
 
 ---
 

@@ -1,0 +1,20 @@
+[Unit]
+Description=Zyvor relay-pubsub-console (static HTTPS ops console)
+Documentation=https://github.com/zyvorai/relay-pubsub
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory={{APP_DIR}}
+Environment=HOME={{APP_DIR}}
+ExecStart={{APP_DIR}}/node_modules/.bin/http-server {{APP_DIR}}/dist -p {{PORT}} -a 0.0.0.0 -S -C {{TLS_DIR}}/cert.pem -K {{TLS_DIR}}/key.pem
+Restart=always
+RestartSec=5
+User=relay-console
+Group=relay-console
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
