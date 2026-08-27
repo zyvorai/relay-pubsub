@@ -135,7 +135,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Both listeners are TLS-only — this gateway terminates HTTPS/gRPCS
     // itself rather than sitting behind a reverse proxy. A self-signed
     // cert/key is generated on first run and reused thereafter.
-    let tls = load_or_generate_self_signed(&config.tls_cert, &config.tls_key, config.tls_san.clone())?;
+    let tls =
+        load_or_generate_self_signed(&config.tls_cert, &config.tls_key, config.tls_san.clone())?;
 
     let grpc_addr = config.grpc_addr;
     let grpc_identity = Identity::from_pem(tls.cert_pem.clone(), tls.key_pem.clone());
@@ -151,7 +152,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let http_addr = config.http_addr;
-    let http_tls_config = axum_server::tls_rustls::RustlsConfig::from_pem(tls.cert_pem, tls.key_pem).await?;
+    let http_tls_config =
+        axum_server::tls_rustls::RustlsConfig::from_pem(tls.cert_pem, tls.key_pem).await?;
     let mut http = tokio::spawn(async move {
         info!(%http_addr, "Pub/Sub REST/admin endpoint listening (HTTPS)");
         axum_server::bind_rustls(http_addr, http_tls_config)
