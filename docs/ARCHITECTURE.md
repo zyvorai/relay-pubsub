@@ -24,6 +24,8 @@ The memory implementation makes conformance testing deterministic. The HTTP impl
 
 Compatibility gateways should be stateless. Run 2+ replicas behind an HTTP/2-capable load balancer. ACK IDs, cursors and exactly-once state must be durable in Relay, not process memory. The included memory backend is therefore only for tests/demos.
 
+Each gateway process terminates its own TLS (gRPCS/HTTPS, see the [TLS section in the README](../README.md#tls)) and, absent a CA-signed cert, generates its own self-signed one on first start. In a multi-replica deployment without a shared `PUBSUB_TLS_CERT`/`PUBSUB_TLS_KEY` (e.g. a mounted Secret), each replica presents a *different* self-signed cert — fine for a single-instance or memory-backend deployment, but worth a shared cert/volume once running multiple replicas behind a real load balancer for cert consistency.
+
 ## Tenant model
 
 External Pub/Sub resource names contain `projects/<project>`, but that string is not authorization. Production flow should be:

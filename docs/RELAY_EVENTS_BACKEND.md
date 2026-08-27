@@ -20,8 +20,10 @@ Publish via gRPC (`Publisher.publish`) or REST (`POST /v1/projects/{project}/top
 This backend also mounts a new route, `POST /v1/actions`, implementing Relay's Action Gateway contract (required `Idempotency-Key`, idempotent retries return the same result). Point Relay at it:
 
 ```bash
-RELAY_ACTION_TARGETS=farm-controller=http://<this-host>:<PUBSUB_HTTP_ADDR-port>/v1/actions
+RELAY_ACTION_TARGETS=farm-controller=https://<this-host>:<PUBSUB_HTTP_ADDR-port>/v1/actions
 ```
+
+This gateway's REST listener is TLS-only (see the [TLS section in the README](../README.md#tls)) — if it's using the default self-signed cert, whatever calls this URL (Relay itself) needs to skip certificate verification against it, the same way this backend's own outbound calls to Relay can via `RELAY_TLS_INSECURE` below.
 
 Each action is enqueued as a message on the actions topic (`FASAL_ACTIONS_TOPIC`, default `farm-actions`) via the backend's normal `publish` — which for that one topic store-and-forwards locally (an inner `MemoryBackend`) instead of calling Relay, since this is the Relay -> consumer direction. The gateway returns 2xx immediately: a 2xx means "durably accepted," not "physically executed," matching the Action Gateway contract's own model — verification stays Relay's separate telemetry-probe step, unaffected by this backend. Consumers pull via `Subscriber.Pull` or `StreamingPull` and ack normally — this gets `MemoryBackend`'s DLQ-after-max-attempts and nack/redelivery for free.
 
@@ -32,6 +34,7 @@ Each action is enqueued as a message on the actions topic (`FASAL_ACTIONS_TOPIC`
 | `RELAY_BACKEND` | `memory` | Set to `relay-events` |
 | `RELAY_BASE_URL` | `http://relay:9090` | Relay's real REST API |
 | `RELAY_AUTH_TOKEN` | unset | Sent as `?token=demo-token` (Relay demo mode) if literally `demo-token`, else `Authorization: Bearer` |
+| `RELAY_TLS_INSECURE` | `false` (`1`/`true`/`yes` to enable) | Skip certificate verification on this backend's outbound HTTP client to `RELAY_BASE_URL` — needed if Relay itself is running with a self-signed/internal cert |
 | `FASAL_GCP_PROJECT` | `fasal-onprem` | Project segment in Pub/Sub resource names |
 | `FASAL_ACTIONS_TOPIC` / `FASAL_ACTIONS_SUBSCRIPTION` | `farm-actions` / `farm-actions-sub` | Outbound action queue, pre-created at startup |
 
@@ -49,5 +52,5 @@ cargo test --release action_gateway
 `publish_all_catalog_event_types` covers all 10 `FASAL_CATALOG` entries, not just `irrigation.required`. For a real end-to-end check against a running Relay + this binary:
 
 ```bash
-BASE=http://127.0.0.1:8080 GATEWAY=http://127.0.0.1:8083 ./scripts/fasal-catalog-smoke.sh
+BASE=http://127.0.0.1:8080 GATEWAY=https://127.0.0.1:8083 ./scripts/fasal-catalog-smoke.sh
 ```

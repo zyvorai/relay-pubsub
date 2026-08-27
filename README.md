@@ -87,7 +87,7 @@ The service/package names are exactly `google.pubsub.v1.Publisher` and `google.p
 - Kubernetes manifest
 - Helm chart + local k3s test workflow
 - GitHub Actions CI (build/test + image release + k3s E2E)
-- React/Vite operations console
+- React/Vite operations console — deployable standalone via `scripts/deploy-console-remote.sh` (own HTTPS, own self-signed cert, independent of the gateway process — see [Ops console](docs/DEPLOYMENT.md#ops-console))
 
 ## Backends
 
@@ -158,6 +158,14 @@ Verify a deployment:
 make deploy-remote-verify H=<host> U=<user>        # runs scripts/selftest.sh remotely
 BASE="https://<host>:8080" bash scripts/smoke.sh   # functional publish/pull round-trip (self-signed cert — smoke.sh uses curl -k)
 ```
+
+### Ops console (standalone)
+
+```bash
+bash scripts/deploy-console-remote.sh <host> <user> [--api-base URL] [--project NAME] [--port PORT]
+```
+
+Builds `ui/dist` locally (`VITE_API_BASE`/`VITE_PROJECT` baked in at build time) and deploys it to `<host>` as its own `relay-pubsub-console.service` — a self-signed-HTTPS static file server (`http-server`), independent of the gateway's process/port. No nginx, no Docker required on the target. See [Ops console](docs/DEPLOYMENT.md#ops-console) for management commands.
 
 ### Kubernetes pods
 
