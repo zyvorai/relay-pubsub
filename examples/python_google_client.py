@@ -1,9 +1,11 @@
 """Smoke test using the official google-cloud-pubsub client.
 
-Run gateway first, then:
-  pip install google-cloud-pubsub
-  export PUBSUB_EMULATOR_HOST=127.0.0.1:50051
-  python examples/python_google_client.py
+NOTE: the gateway's gRPC listener is TLS-only. PUBSUB_EMULATOR_HOST forces
+the client SDK onto a plaintext channel, so it can no longer reach this
+gateway — that env var only works against a real plaintext emulator/gateway.
+Use scripts/smoke.sh (REST + curl -k) for a self-signed-cert-friendly smoke
+test instead, or adapt this script to build a grpc.secure_channel trusting
+the gateway's generated cert.
 """
 from google.cloud import pubsub_v1
 

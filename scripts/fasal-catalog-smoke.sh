@@ -10,15 +10,16 @@
 # POST /v1/actions receiver (rpg_... provider id).
 #
 # Usage:
-#   BASE=http://127.0.0.1:8080 GATEWAY=http://127.0.0.1:8083 \
+#   BASE=http://127.0.0.1:8080 GATEWAY=https://127.0.0.1:8083 \
 #     ./scripts/fasal-catalog-smoke.sh
 #
 # Requires: Relay running at BASE, and this binary running at GATEWAY with
 # RELAY_BACKEND=relay-events and RELAY_BASE_URL pointed at BASE, and Relay's
-# RELAY_ACTION_TARGETS pointed at GATEWAY's /v1/actions.
+# RELAY_ACTION_TARGETS pointed at GATEWAY's /v1/actions. GATEWAY is this
+# gateway's TLS-only listener — self-signed by default, hence curl -k below.
 set -euo pipefail
 BASE=${BASE:-http://127.0.0.1:8080}
-GATEWAY=${GATEWAY:-http://127.0.0.1:8083}
+GATEWAY=${GATEWAY:-https://127.0.0.1:8083}
 PROJECT=${PROJECT:-fasal-onprem}
 USER=${RELAY_DEMO_USER:-demo}
 PASS=${RELAY_DEMO_PASSWORD:-demo}
@@ -29,7 +30,7 @@ fail_soft() { echo "  ❌ $1" >&2; FAILED=$((FAILED + 1)); }
 
 echo "== Fasal relay-events backend catalog smoke — gateway=$GATEWAY relay=$BASE =="
 curl -fsS "$BASE/healthz" >/dev/null
-curl -fsS "$GATEWAY/healthz" >/dev/null
+curl -k -fsS "$GATEWAY/healthz" >/dev/null
 LOGIN=$(curl -fsS -X POST "$BASE/v1/auth/login" -H 'content-type: application/json' -d "{\"username\":\"$USER\",\"password\":\"$PASS\"}")
 TOKEN=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])' <<<"$LOGIN")
 AUTH=(-H "Authorization: Bearer $TOKEN")
@@ -75,7 +76,7 @@ for entry in "${CATALOG[@]}"; do
     data=$(printf '{"advisory":"catalog smoke"}' | base64 | tr -d '\n')
   fi
 
-  code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$GATEWAY/v1/projects/$PROJECT/topics/$event_type:publish" \
+  code=$(curl -k -sS -o /dev/null -w '%{http_code}' -X POST "$GATEWAY/v1/projects/$PROJECT/topics/$event_type:publish" \
     -H 'content-type: application/json' \
     -d "{\"messages\":[{\"data\":\"$data\",\"attributes\":{\"severity\":\"$severity\",\"source\":\"catalog-smoke\",\"idempotency_key\":\"$key\"}}]}")
   if [[ "$code" != "200" ]]; then

@@ -11,6 +11,7 @@ pub mod metrics;
 pub mod model;
 pub mod relay_events_backend;
 pub mod rest;
+pub mod tls;
 
 pub mod google {
     pub mod pubsub {

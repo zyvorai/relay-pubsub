@@ -127,10 +127,10 @@ Unlike the HTTP backend above, this targets Relay's real, already-shipped event-
 docker compose up --build
 ```
 
-Endpoints:
+Endpoints (gRPC and REST are TLS-only — see [TLS](#tls) below):
 
-- gRPC: `127.0.0.1:50051`
-- REST/admin: `http://127.0.0.1:8080`
+- gRPCS: `127.0.0.1:50051`
+- REST/admin: `https://127.0.0.1:8080`
 - UI: `http://127.0.0.1:3000`
 
 Then:
@@ -155,8 +155,8 @@ This builds a release binary locally (cross-building via Docker if the operator'
 Verify a deployment:
 
 ```bash
-make deploy-remote-verify H=<host> U=<user>       # runs scripts/selftest.sh remotely
-BASE="http://<host>:8080" bash scripts/smoke.sh   # functional publish/pull round-trip
+make deploy-remote-verify H=<host> U=<user>        # runs scripts/selftest.sh remotely
+BASE="https://<host>:8080" bash scripts/smoke.sh   # functional publish/pull round-trip (self-signed cert — smoke.sh uses curl -k)
 ```
 
 ### Kubernetes pods
@@ -172,22 +172,22 @@ bash deploy/scripts/ci-k3s-e2e.sh     # rollout status + scripts/smoke.sh agains
 
 This is also what the `k3s-e2e` GitHub Actions workflow runs on PRs touching `deploy/**`.
 
-## Test with Google's Python Pub/Sub client
+## TLS
 
-```bash
-pip install google-cloud-pubsub
-export PUBSUB_EMULATOR_HOST=127.0.0.1:50051
-python examples/python_google_client.py
-```
+The gRPC and REST listeners are **TLS-only** (gRPCS/HTTPS) — the gateway terminates TLS itself, no reverse proxy required. On first start, if `PUBSUB_TLS_CERT`/`PUBSUB_TLS_KEY` don't already exist, a self-signed cert/key pair is generated and persisted there (`/var/lib/relay-pubsub/tls/{cert,key}.pem` by default) and reused on every restart. Point `PUBSUB_TLS_CERT`/`PUBSUB_TLS_KEY` at a CA-signed cert instead if you have one. `PUBSUB_TLS_SAN` (comma-separated) sets the generated cert's hostnames/IPs — only takes effect the first time a cert is generated.
 
-`PUBSUB_EMULATOR_HOST` makes Google's client use a plaintext emulator endpoint rather than `pubsub.googleapis.com`.
+Clients that don't trust the self-signed cert need to skip verification: `curl -k`, `grpcurl -insecure`, etc.
+
+**Caveat:** because gRPC is TLS-only, Google's official client libraries in **emulator/plaintext mode** (`PUBSUB_EMULATOR_HOST=...`) can no longer reach the gateway — that mode forces a plaintext channel in the SDK itself. `examples/python_google_client.py` needs a real TLS-aware channel (e.g. `grpc.secure_channel` with the generated cert as a trusted root) instead of `PUBSUB_EMULATOR_HOST` to work against this build.
 
 ## REST example
+
+Self-signed cert by default — add `-k` to skip curl's certificate verification (or point `--cacert` at the generated `cert.pem`).
 
 Create a topic:
 
 ```bash
-curl -X PUT http://localhost:8080/v1/projects/demo/topics/orders \
+curl -k -X PUT https://localhost:8080/v1/projects/demo/topics/orders \
   -H 'content-type: application/json' \
   -d '{"labels":{"team":"payments"}}'
 ```
@@ -195,7 +195,7 @@ curl -X PUT http://localhost:8080/v1/projects/demo/topics/orders \
 Create a subscription:
 
 ```bash
-curl -X PUT http://localhost:8080/v1/projects/demo/subscriptions/orders-worker \
+curl -k -X PUT https://localhost:8080/v1/projects/demo/subscriptions/orders-worker \
   -H 'content-type: application/json' \
   -d '{"topic":"projects/demo/topics/orders","ackDeadlineSeconds":20,"enableMessageOrdering":true}'
 ```
@@ -203,7 +203,7 @@ curl -X PUT http://localhost:8080/v1/projects/demo/subscriptions/orders-worker \
 Publish:
 
 ```bash
-curl -X POST http://localhost:8080/v1/projects/demo/topics/orders:publish \
+curl -k -X POST https://localhost:8080/v1/projects/demo/topics/orders:publish \
   -H 'content-type: application/json' \
   -d '{"messages":[{"data":"aGVsbG8=","attributes":{"region":"in"},"orderingKey":"customer-17"}]}'
 ```
@@ -211,7 +211,7 @@ curl -X POST http://localhost:8080/v1/projects/demo/topics/orders:publish \
 Pull:
 
 ```bash
-curl -X POST http://localhost:8080/v1/projects/demo/subscriptions/orders-worker:pull \
+curl -k -X POST https://localhost:8080/v1/projects/demo/subscriptions/orders-worker:pull \
   -H 'content-type: application/json' \
   -d '{"maxMessages":10}'
 ```

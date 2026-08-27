@@ -108,14 +108,15 @@ fi
 # ── HTTP health ──────────────────────────────────────────────────────────────
 section "HTTP health"
 
-BASE="http://127.0.0.1:${HTTP_PORT}"
-if curl -fsS "${BASE}/healthz" 2>/dev/null; then
+# TLS-only, self-signed cert by default — -k skips cert verification.
+BASE="https://127.0.0.1:${HTTP_PORT}"
+if curl -k -fsS "${BASE}/healthz" 2>/dev/null; then
     echo ""
     pass "GET /healthz responded"
 else
     fail "GET /healthz did not respond"
 fi
-if curl -fsS "${BASE}/readyz" 2>/dev/null; then
+if curl -k -fsS "${BASE}/readyz" 2>/dev/null; then
     echo ""
     pass "GET /readyz responded"
 else

@@ -14,11 +14,11 @@ use relay_pubsub::{
     model::{SubscriptionSpec, TopicSpec},
     relay_events_backend::RelayEventsBackend,
     rest::{router, HttpState},
+    tls::load_or_generate_self_signed,
 };
 use std::collections::HashMap;
 use std::{sync::Arc, time::Duration};
-use tokio::net::TcpListener;
-use tonic::transport::Server;
+use tonic::transport::{Identity, Server, ServerTlsConfig};
 use tracing::info;
 
 #[tokio::main]
@@ -29,6 +29,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .unwrap_or_else(|_| "info,tower_http=info".into()),
         )
         .init();
+
+    // Both the HTTP (axum-server/rustls) and gRPC (tonic/rustls) TLS
+    // listeners need a process-wide default crypto provider; without this,
+    // rustls can't pick one automatically when multiple provider features
+    // are reachable transitively.
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("install rustls default crypto provider");
 
     let mut config = Config::parse();
     // An EnvironmentFile/.env with `RELAY_AUTH_TOKEN=` (present but empty) is
@@ -124,11 +132,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )));
     }
 
+    // Both listeners are TLS-only — this gateway terminates HTTPS/gRPCS
+    // itself rather than sitting behind a reverse proxy. A self-signed
+    // cert/key is generated on first run and reused thereafter.
+    let tls = load_or_generate_self_signed(&config.tls_cert, &config.tls_key, config.tls_san.clone())?;
+
     let grpc_addr = config.grpc_addr;
+    let grpc_identity = Identity::from_pem(tls.cert_pem.clone(), tls.key_pem.clone());
     let grpc_gateway = gateway.clone();
     let mut grpc = tokio::spawn(async move {
-        info!(%grpc_addr, "Pub/Sub gRPC endpoint listening");
+        info!(%grpc_addr, "Pub/Sub gRPCS endpoint listening");
         Server::builder()
+            .tls_config(ServerTlsConfig::new().identity(grpc_identity))?
             .add_service(PublisherServer::new(grpc_gateway.clone()))
             .add_service(SubscriberServer::new(grpc_gateway))
             .serve(grpc_addr)
@@ -136,10 +151,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let http_addr = config.http_addr;
+    let http_tls_config = axum_server::tls_rustls::RustlsConfig::from_pem(tls.cert_pem, tls.key_pem).await?;
     let mut http = tokio::spawn(async move {
-        let listener = TcpListener::bind(http_addr).await?;
-        info!(%http_addr, "Pub/Sub REST/admin endpoint listening");
-        axum::serve(listener, http_router).await
+        info!(%http_addr, "Pub/Sub REST/admin endpoint listening (HTTPS)");
+        axum_server::bind_rustls(http_addr, http_tls_config)
+            .serve(http_router.into_make_service())
+            .await
     });
 
     tokio::select! {

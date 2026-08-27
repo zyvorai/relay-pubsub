@@ -49,4 +49,4 @@ kubectl -n "${NAMESPACE}" get pods -o wide
 echo ""
 echo "Deployed. To access locally:"
 echo "  kubectl -n ${NAMESPACE} port-forward svc/relay-pubsub 8080:8080 &"
-echo "  BASE=http://127.0.0.1:8080 bash scripts/smoke.sh"
+echo "  BASE=https://127.0.0.1:8080 bash scripts/smoke.sh"

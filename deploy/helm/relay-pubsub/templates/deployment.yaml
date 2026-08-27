@@ -31,7 +31,7 @@ spec:
                 secretKeyRef: { name: {{ .Values.gatewayAuth.existingSecret }}, key: {{ .Values.gatewayAuth.tokenKey }} }
             {{- end }}
           readinessProbe:
-            httpGet: { path: /readyz, port: http }
+            httpGet: { path: /readyz, port: http, scheme: HTTPS }
           livenessProbe:
-            httpGet: { path: /healthz, port: http }
+            httpGet: { path: /healthz, port: http, scheme: HTTPS }
           resources: {{- toYaml .Values.resources | nindent 12 }}

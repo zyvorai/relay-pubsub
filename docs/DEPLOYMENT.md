@@ -4,7 +4,7 @@
 
 | Host | User | HTTP | gRPC | Backend | Notes |
 |---|---|---|---|---|---|
-| `212.8.248.187` | `sus` | `8081` | `50061` | `memory` | Non-default ports — host already runs nginx on `:8080` and a `machina-agent` process on `:50051`. Deployed via the full remote-build profile (`bash scripts/deploy-remote.sh 212.8.248.187 sus --key`), then reconfigured (see [Port already in use](#port-already-in-use-on-the-target-host) below) and verified with `scripts/selftest.sh` (9/9 pass) and `scripts/smoke.sh` run externally against `http://212.8.248.187:8081`. |
+| `212.8.248.187` | `sus` | `8081` (HTTPS) | `50061` (gRPCS) | `memory` | Non-default ports — host already runs nginx on `:8080` and a `machina-agent` process on `:50051`. Gateway terminates TLS itself (self-signed cert, generated at `/var/lib/relay-pubsub/tls/`) — no reverse proxy in front. Deployed via the full remote-build profile (`bash scripts/deploy-remote.sh 212.8.248.187 sus`), verified with `scripts/selftest.sh` (9/9 pass) and `scripts/smoke.sh` run externally against `https://212.8.248.187:8081` (self-signed cert — `curl -k`). |
 
 To manage this instance:
 
@@ -12,7 +12,7 @@ To manage this instance:
 ssh sus@212.8.248.187 systemctl status relay-pubsub     # check status
 ssh sus@212.8.248.187 sudo systemctl restart relay-pubsub
 ssh sus@212.8.248.187 cat /etc/relay-pubsub/relay-pubsub.env   # current config
-BASE=http://212.8.248.187:8081 bash scripts/smoke.sh     # functional verification
+BASE=https://212.8.248.187:8081 bash scripts/smoke.sh    # functional verification (self-signed cert — smoke.sh uses curl -k)
 make deploy-remote-quick H=212.8.248.187 U=sus            # redeploy (rebuilds locally, rsyncs binary, restarts service — config file is preserved)
 make deploy-remote-uninstall H=212.8.248.187 U=sus        # remove entirely
 ```
@@ -72,8 +72,11 @@ Run `bash scripts/deploy-remote.sh --help` for the full flag list, and `make dep
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `PUBSUB_GRPC_ADDR` | `0.0.0.0:50051` | gRPC listener (Google Pub/Sub compatible API) |
-| `PUBSUB_HTTP_ADDR` | `0.0.0.0:8080` | REST/admin listener, also serves `/healthz`, `/readyz`, `/metrics` |
+| `PUBSUB_GRPC_ADDR` | `0.0.0.0:50051` | gRPCS listener (Google Pub/Sub compatible API) — TLS-only |
+| `PUBSUB_HTTP_ADDR` | `0.0.0.0:8080` | HTTPS/admin listener, also serves `/healthz`, `/readyz`, `/metrics` — TLS-only |
+| `PUBSUB_TLS_CERT` | `/var/lib/relay-pubsub/tls/cert.pem` | Cert used by both listeners. Self-signed and generated here on first start if missing; point at a CA-signed cert instead if you have one |
+| `PUBSUB_TLS_KEY` | `/var/lib/relay-pubsub/tls/key.pem` | Matching private key |
+| `PUBSUB_TLS_SAN` | `localhost,relay-pubsub` | Comma-separated hostnames/IPs for the *generated* self-signed cert — only takes effect the first time a cert is generated |
 | `RELAY_BACKEND` | `memory` | `memory` (self-contained demo), `http` (invented topics/subscriptions contract), or `relay-events` (Relay's real API — see [RELAY_EVENTS_BACKEND.md](RELAY_EVENTS_BACKEND.md)) |
 | `RELAY_BASE_URL` | `http://relay:9090` | Only used when `RELAY_BACKEND=http` or `relay-events` |
 | `RELAY_AUTH_TOKEN` | *(empty = none)* | Bearer token sent to the Relay backend when `RELAY_BACKEND=http` or `relay-events` |
@@ -97,9 +100,9 @@ ssh <user>@<host> "sudo sed -i \
 ### Verify
 
 ```bash
-make deploy-remote-verify H=<host> U=<user>          # runs scripts/selftest.sh remotely
+make deploy-remote-verify H=<host> U=<user>           # runs scripts/selftest.sh remotely
 ssh <user>@<host> systemctl status relay-pubsub
-BASE="http://<host>:<http-port>" bash scripts/smoke.sh   # real publish/pull round-trip, run from anywhere
+BASE="https://<host>:<http-port>" bash scripts/smoke.sh   # real publish/pull round-trip, run from anywhere (self-signed cert — smoke.sh uses curl -k)
 ```
 
 `selftest.sh` checks (in order): binary present + `--version` works, systemd unit active/enabled, both ports listening, `/healthz` + `/readyz` respond, and finally runs `scripts/smoke.sh` itself as the actual functional proof. It exits non-zero if anything fails.
@@ -148,7 +151,7 @@ or apply the static manifest directly: `kubectl apply -f deploy/k8s/gateway.yaml
 ```bash
 kubectl -n relay-pubsub rollout status deployment/relay-pubsub --timeout=180s
 kubectl -n relay-pubsub port-forward svc/relay-pubsub 8080:8080 &
-BASE=http://127.0.0.1:8080 bash scripts/smoke.sh
+BASE=https://127.0.0.1:8080 bash scripts/smoke.sh
 ```
 
 ---
@@ -156,6 +159,8 @@ BASE=http://127.0.0.1:8080 bash scripts/smoke.sh
 ## Troubleshooting
 
 **Every request returns 401, even with `RELAY_PUBSUB_AUTH_TOKEN` "unset".** Fixed as of this deployment tooling landing (`src/main.rs`) — previously, an `EnvironmentFile`/`.env` line like `RELAY_PUBSUB_AUTH_TOKEN=` (present but empty) was parsed by `clap` as `Some("")`, a real-but-empty required token that no client could ever satisfy, rather than as unset. `main()` now filters both `RELAY_AUTH_TOKEN` and `RELAY_PUBSUB_AUTH_TOKEN` to `None` when empty. If you still see this on an older binary, either upgrade or remove the line from the env file entirely (a variable absent from the file behaves correctly on all versions).
+
+**Client gets a TLS/cert error, or a plaintext client (e.g. `PUBSUB_EMULATOR_HOST=...` against Google's official SDKs) can't connect at all.** Both listeners are TLS-only and self-signed by default. Clients must either skip verification (`curl -k`, `grpcurl -insecure`, gRPC channel credentials built with `InsecureSkipVerify`/a custom trust root) or be pointed at a CA-signed cert via `PUBSUB_TLS_CERT`/`PUBSUB_TLS_KEY`. `PUBSUB_EMULATOR_HOST` specifically forces Google's client SDKs onto a plaintext channel, so it cannot reach this gateway at all — see the [TLS section in the README](../README.md#tls).
 
 **`Address already in use` / crash-looping systemd unit.** The target host already has something bound to `:8080` or `:50051` (common on shared boxes). See [Port already in use](#port-already-in-use-on-the-target-host) above — check current listeners with `sudo ss -ltnp` before picking replacement ports.
 

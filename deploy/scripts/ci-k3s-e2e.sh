@@ -41,7 +41,7 @@ trap 'kill "${PF_PID}" 2>/dev/null || true' EXIT
 
 echo "Waiting for port-forward + health..."
 for i in $(seq 1 30); do
-    if curl -sf "http://127.0.0.1:${LOCAL_PORT}/healthz" >/dev/null 2>&1; then
+    if curl -ksf "https://127.0.0.1:${LOCAL_PORT}/healthz" >/dev/null 2>&1; then
         break
     fi
     if [ "${i}" -eq 30 ]; then
@@ -54,6 +54,6 @@ for i in $(seq 1 30); do
 done
 
 echo "Running scripts/smoke.sh against in-cluster gateway..."
-BASE="http://127.0.0.1:${LOCAL_PORT}" bash "${ROOT}/scripts/smoke.sh"
+BASE="https://127.0.0.1:${LOCAL_PORT}" bash "${ROOT}/scripts/smoke.sh"
 
 echo "=== ci-k3s-e2e passed ==="

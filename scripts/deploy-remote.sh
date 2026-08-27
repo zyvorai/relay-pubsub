@@ -345,13 +345,15 @@ else
 fi
 
 if [ "$PKG" = "apt-get" ]; then
-    pkg_install apt-get install -y -qq build-essential pkg-config curl git ca-certificates
+    # cmake is required to build aws-lc-sys (pulled in transitively by the
+    # rustls-based TLS stack — axum-server/hyper-rustls/tonic's tokio-rustls).
+    pkg_install apt-get install -y -qq build-essential pkg-config curl git ca-certificates cmake
 elif [ "$PKG" = "dnf" ]; then
     # RHEL9/Rocky9/Alma9 ship curl-minimal by default; installing the full
     # curl package conflicts with it unless dnf may swap it out.
-    pkg_install dnf install -y --allowerasing gcc make pkgconfig curl git ca-certificates
+    pkg_install dnf install -y --allowerasing gcc make pkgconfig curl git ca-certificates cmake
 else
-    pkg_install "$PKG" install -y gcc make pkgconfig curl git ca-certificates
+    pkg_install "$PKG" install -y gcc make pkgconfig curl git ca-certificates cmake
 fi
 echo "System dependencies installed"
 REMOTE
@@ -484,7 +486,7 @@ print_deployment_summary() {
     echo ""
     echo "  ssh ${TARGET_USER}@${TARGET_HOST}"
     echo "  ssh ${TARGET_USER}@${TARGET_HOST} systemctl status relay-pubsub"
-    echo "  BASE=http://${TARGET_HOST}:8080 bash scripts/smoke.sh"
+    echo "  BASE=https://${TARGET_HOST}:8080 bash scripts/smoke.sh"
     echo "  bash ${REMOTE_DIR}/scripts/selftest.sh"
     echo ""
 }

@@ -28,11 +28,11 @@ spec:
             - name: RELAY_AUTH_TOKEN
               valueFrom: { secretKeyRef: { name: relay-pubsub-secrets, key: relay-token } }
           readinessProbe:
-            httpGet: { path: /readyz, port: http }
+            httpGet: { path: /readyz, port: http, scheme: HTTPS }
             initialDelaySeconds: 2
             periodSeconds: 5
           livenessProbe:
-            httpGet: { path: /healthz, port: http }
+            httpGet: { path: /healthz, port: http, scheme: HTTPS }
             initialDelaySeconds: 5
             periodSeconds: 10
           resources:

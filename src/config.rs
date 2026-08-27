@@ -3,6 +3,7 @@
 
 use clap::{Parser, ValueEnum};
 use std::net::SocketAddr;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, ValueEnum)]
 pub enum BackendKind {
@@ -41,6 +42,36 @@ pub struct Config {
 
     #[arg(long, env = "PUBSUB_HTTP_ADDR", default_value = "0.0.0.0:8080")]
     pub http_addr: SocketAddr,
+
+    /// Path to a PEM certificate for the gRPC/REST listeners. Both listeners
+    /// are TLS-only (HTTPS/gRPCS) — there is no plaintext mode. If this file
+    /// (and `tls_key`) doesn't exist, a self-signed cert/key pair is
+    /// generated once and persisted here.
+    #[arg(
+        long,
+        env = "PUBSUB_TLS_CERT",
+        default_value = "/var/lib/relay-pubsub/tls/cert.pem"
+    )]
+    pub tls_cert: PathBuf,
+
+    #[arg(
+        long,
+        env = "PUBSUB_TLS_KEY",
+        default_value = "/var/lib/relay-pubsub/tls/key.pem"
+    )]
+    pub tls_key: PathBuf,
+
+    /// Hostnames/IPs to embed in the generated self-signed cert's SAN list.
+    /// Only used the first time a cert is generated (see `tls_cert`) — set
+    /// this to the gateway's real hostname/IP before first start if clients
+    /// will validate the cert's name rather than skip verification.
+    #[arg(
+        long,
+        env = "PUBSUB_TLS_SAN",
+        value_delimiter = ',',
+        default_value = "localhost,relay-pubsub"
+    )]
+    pub tls_san: Vec<String>,
 
     #[arg(long, env = "RELAY_BACKEND", value_enum, default_value = "memory")]
     pub backend: BackendKind,

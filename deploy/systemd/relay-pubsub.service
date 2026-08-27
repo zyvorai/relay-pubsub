@@ -16,6 +16,10 @@ StandardOutput=journal
 StandardError=journal
 RuntimeDirectory=relay-pubsub
 RuntimeDirectoryMode=0750
+# Writable despite ProtectSystem=strict — holds the self-signed TLS cert/key
+# generated on first start (see PUBSUB_TLS_CERT/PUBSUB_TLS_KEY).
+StateDirectory=relay-pubsub
+StateDirectoryMode=0750
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict

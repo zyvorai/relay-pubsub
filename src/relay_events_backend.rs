@@ -57,8 +57,12 @@ impl RelayEventsBackend {
         timeout: Duration,
         actions_topic: impl Into<String>,
     ) -> Result<Self, BackendError> {
+        let insecure = std::env::var("RELAY_TLS_INSECURE")
+            .map(|v| matches!(v.as_str(), "1" | "true" | "TRUE" | "yes" | "YES"))
+            .unwrap_or(false);
         let client = Client::builder()
             .timeout(timeout)
+            .danger_accept_invalid_certs(insecure)
             .build()
             .map_err(|e| BackendError::Internal(e.to_string()))?;
         Ok(Self {
