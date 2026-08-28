@@ -120,6 +120,8 @@ BASE=https://<host>:8443 GATEWAY=https://<host>:8081 bash scripts/fasal-catalog-
 
 Full reference → [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
+**Stack integration test:** relay-edge [TEST_RESULTS.md](https://github.com/zyvorai/relay-edge/blob/main/docs/TEST_RESULTS.md) (2026-08-28 — all PASS, includes this gateway).
+
 ---
 
 ## Part of the Zyvor stack

@@ -13,6 +13,7 @@
 | Deploy to Linux or Kubernetes | [Deployment](DEPLOYMENT.md) |
 | Understand the architecture | [Architecture](ARCHITECTURE.md) |
 | Integrate with relay-edge simulators | [Integration with relay-edge](#integration-with-relay-edge) |
+| **Stack test results (relay-edge repo)** | [relay-edge TEST_RESULTS](https://github.com/zyvorai/relay-edge/blob/main/docs/TEST_RESULTS.md) |
 | SPDX headers on source | [License headers](LICENSE_HEADERS.md) |
 
 ---
@@ -81,7 +82,9 @@ RELAY_AUTH_TOKEN="$(cat /tmp/lab-relay.jwt)" \
   ./deploy/scripts/deploy-k8s-remote.sh <HOST> [USER]
 ```
 
-Full event verification: relay-edge `docs/EVENT_MATRIX.md`
+Full event verification: relay-edge [docs/EVENT_MATRIX.md](https://github.com/zyvorai/relay-edge/blob/main/docs/EVENT_MATRIX.md)
+
+**Latest stack test (2026-08-28):** all gates PASS — [relay-edge TEST_RESULTS.md](https://github.com/zyvorai/relay-edge/blob/main/docs/TEST_RESULTS.md) (covers pubsub health, farm Act via `/v1/actions`, and full Forge path).
 
 ---
 

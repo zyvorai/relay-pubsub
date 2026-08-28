@@ -6,31 +6,31 @@ How to run the gateway on a laptop, Linux host, or in Kubernetes — alone or wi
 
 ---
 
-## Currently deployed instances
+## Deployment reference (template)
+
+Track your own instances in ops notes — do not commit live hostnames or IPs to git.
 
 | Host | User | HTTP | gRPC | Backend | Notes |
 |---|---|---|---|---|---|
-| `212.8.248.187` | `sus` | `8081` (HTTPS) | `50061` (gRPCS) | `relay-events` | **systemd** on host. Non-default ports (nginx on `:8080`, machina on `:50051`). Self-signed cert at `/var/lib/relay-pubsub/tls/`. `RELAY_BASE_URL=https://127.0.0.1:8443`, `RELAY_TLS_INSECURE=1`. Pre-registers **40** topic names (farm + edge + remote-edge + fleet catalogs). JWT must match relay-edge. |
-| `212.8.248.187` | `sus` | `8082` (HTTPS) | — | n/a | Ops console — [Ops console](#ops-console) |
-| `212.8.248.187` | `sus` | `8080` (HTTPS, in-cluster) | `50051` (gRPCS) | `relay-events` | **k8s** pod in namespace `relay-pubsub`. Deployed via relay-edge `deploy/scripts/deploy-k8s-remote.sh`. Reaches host Relay at `https://212.8.248.187:8443`. |
+| `<host>` | `<user>` | `8081` (HTTPS) | `50061` (gRPCS) | `relay-events` | **systemd** on host. Self-signed cert at `/var/lib/relay-pubsub/tls/`. `RELAY_BASE_URL=https://127.0.0.1:8443`, `RELAY_TLS_INSECURE=1`. Pre-registers **40** topic names (farm + edge + remote-edge + fleet catalogs). JWT must match relay-edge. |
+| `<host>` | `<user>` | `8082` (HTTPS) | — | n/a | Ops console — [Ops console](#ops-console) |
+| `<host>` | `<user>` | `8080` (HTTPS, in-cluster) | `50051` (gRPCS) | `relay-events` | **k8s** pod in namespace `relay-pubsub`. Deployed via relay-edge `deploy/scripts/deploy-k8s-remote.sh`. Reaches host Relay at `https://<host>:8443`. |
 
-To manage the **systemd** gateway:
-
-```bash
-ssh sus@212.8.248.187 systemctl status relay-pubsub
-ssh sus@212.8.248.187 cat /etc/relay-pubsub/relay-pubsub.env
-BASE=https://212.8.248.187:8081 bash scripts/smoke-relay-events.sh
-make deploy-remote-quick H=212.8.248.187 U=sus
-```
-
-To manage **k8s** pods:
+Manage **systemd** gateway:
 
 ```bash
-ssh sus@212.8.248.187 kubectl -n relay-pubsub get pods
-ssh sus@212.8.248.187 bash ~/.deployments/k8s-edge-stack/relay-edge/deploy/scripts/k8s-e2e.sh
+ssh <user>@<host> systemctl status relay-pubsub
+ssh <user>@<host> cat /etc/relay-pubsub/relay-pubsub.env
+BASE=https://<host>:8081 bash scripts/smoke-relay-events.sh
+make deploy-remote-quick H=<host> U=<user>
 ```
 
-Update this table when hosts change — it's the source of truth for what's running where.
+Manage **k8s** pods:
+
+```bash
+ssh <user>@<host> kubectl -n relay-pubsub get pods
+ssh <user>@<host> bash ~/.deployments/k8s-edge-stack/relay-edge/deploy/scripts/k8s-e2e.sh
+```
 
 ---
 
@@ -39,8 +39,8 @@ Update this table when hosts change — it's the source of truth for what's runn
 `ui/` is deployed independently via `scripts/deploy-console-remote.sh` — own systemd unit, port `8082`, self-signed HTTPS. See existing section below (unchanged).
 
 ```bash
-bash scripts/deploy-console-remote.sh 212.8.248.187 sus
-curl -k https://212.8.248.187:8082/
+bash scripts/deploy-console-remote.sh <host> <user>
+curl -k https://<host>:8082/
 ```
 
 ---
@@ -86,7 +86,7 @@ Example lab `/etc/relay-pubsub/relay-pubsub.env`:
 ```bash
 PUBSUB_HTTP_ADDR=0.0.0.0:8081
 PUBSUB_GRPC_ADDR=0.0.0.0:50061
-PUBSUB_TLS_SAN=localhost,127.0.0.1,212.8.248.187,relay-pubsub
+PUBSUB_TLS_SAN=localhost,127.0.0.1,<host>,relay-pubsub
 RELAY_BACKEND=relay-events
 RELAY_BASE_URL=https://127.0.0.1:8443
 RELAY_TLS_INSECURE=1
@@ -169,7 +169,7 @@ kubectl -n relay-pubsub create secret generic relay-pubsub-secrets \
 helm upgrade --install relay-pubsub deploy/helm/relay-pubsub \
   -n relay-pubsub \
   --set relay.backend=relay-events \
-  --set relay.baseUrl=https://212.8.248.187:8443 \
+  --set relay.baseUrl=https://<relay-host>:8443 \
   --set relay.tlsInsecure=1 \
   --set tls.san="localhost,relay-pubsub,relay-pubsub.relay-pubsub.svc.cluster.local"
 ```
@@ -184,7 +184,9 @@ helm upgrade --install relay-pubsub deploy/helm/relay-pubsub \
 | relay-pubsub | Maps Pub/Sub topics → `POST /v1/events`; receives actions at `/v1/actions` |
 | Relay | Policies, notify, ack, act, verify |
 
-Event matrix (all four families): relay-edge `docs/EVENT_MATRIX.md` and `scripts/e2e-events-matrix.sh`.
+Event matrix (all four families): relay-edge [docs/EVENT_MATRIX.md](https://github.com/zyvorai/relay-edge/blob/main/docs/EVENT_MATRIX.md) and `scripts/e2e-events-matrix.sh`.
+
+**Full stack verification (2026-08-28, all PASS):** relay-edge [docs/TEST_RESULTS.md](https://github.com/zyvorai/relay-edge/blob/main/docs/TEST_RESULTS.md) — health probe, event matrix, Forge Decision Record path. Use `config/lab-stack.env` from relay-edge; set `GATEWAY` to this gateway's HTTPS URL.
 
 **Relay action targets** (for farm Act evidence):
 

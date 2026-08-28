@@ -74,6 +74,10 @@ BASE=https://127.0.0.1:8443 GATEWAY=https://127.0.0.1:8081 \
 # All four families via relay-edge (sibling repo)
 BASE=https://127.0.0.1:8443 GATEWAY=https://127.0.0.1:8081 EDGE=http://127.0.0.1:18086 \
   ../relay-edge/scripts/e2e-events-matrix.sh
+
+# Full stack + Forge (see relay-edge docs/TEST_RESULTS.md)
+set -a && source ../relay-edge/config/lab-stack.env && set +a
+../relay-edge/scripts/e2e-forge-stack.sh
 ```
 
 ## Kubernetes
