@@ -1,54 +1,57 @@
 # Deploying relay-pubsub
 
+How to run the gateway on a laptop, Linux host, or in Kubernetes — alone or with relay-edge.
+
+← [Docs hub](README.md) · [Getting started](GETTING_STARTED.md)
+
+---
+
 ## Currently deployed instances
 
 | Host | User | HTTP | gRPC | Backend | Notes |
 |---|---|---|---|---|---|
-| `212.8.248.187` | `sus` | `8081` (HTTPS) | `50061` (gRPCS) | `relay-events` | Non-default ports — host already runs nginx on `:8080` and a `machina-agent` process on `:50051`. Gateway terminates TLS itself (self-signed cert, generated at `/var/lib/relay-pubsub/tls/`) — no reverse proxy in front. Deployed via the full remote-build profile (`bash scripts/deploy-remote.sh 212.8.248.187 sus`), verified with `scripts/selftest.sh` (9/9 pass) and `scripts/smoke.sh` run externally against `https://212.8.248.187:8081` (self-signed cert — `curl -k`). **`RELAY_BACKEND` was switched from `memory` to `relay-events` directly on the host (outside `deploy-remote.sh`/this repo's tooling) — `/etc/relay-pubsub/relay-pubsub.env` now points at a real Relay instance also running on this host at `https://127.0.0.1:18080` (`RELAY_TLS_INSECURE=1`, real bearer token), with the full 11-topic Fasal catalog registered under `projects/fasal-onprem`. Gateway's own `RELAY_PUBSUB_AUTH_TOKEN` is empty — the REST/gRPC API is unauthenticated to anyone who can reach the host's ports.** |
-| `212.8.248.187` | `sus` | `8082` (HTTPS, static console) | — | n/a | `ui/` ops console, deployed as its own standalone unit — see [Ops console](#ops-console) below. Independent of the gateway's systemd unit/process. |
+| `212.8.248.187` | `sus` | `8081` (HTTPS) | `50061` (gRPCS) | `relay-events` | **systemd** on host. Non-default ports (nginx on `:8080`, machina on `:50051`). Self-signed cert at `/var/lib/relay-pubsub/tls/`. `RELAY_BASE_URL=https://127.0.0.1:8443`, `RELAY_TLS_INSECURE=1`. Pre-registers **40** topic names (farm + edge + atlas + fleet catalogs). JWT must match relay-edge. |
+| `212.8.248.187` | `sus` | `8082` (HTTPS) | — | n/a | Ops console — [Ops console](#ops-console) |
+| `212.8.248.187` | `sus` | `8080` (HTTPS, in-cluster) | `50051` (gRPCS) | `relay-events` | **k8s** pod in namespace `relay-pubsub`. Deployed via relay-edge `deploy/scripts/deploy-k8s-remote.sh`. Reaches host Relay at `https://212.8.248.187:8443`. |
 
-To manage the gateway on this instance:
-
-```bash
-ssh sus@212.8.248.187 systemctl status relay-pubsub     # check status
-ssh sus@212.8.248.187 sudo systemctl restart relay-pubsub
-ssh sus@212.8.248.187 cat /etc/relay-pubsub/relay-pubsub.env   # current config
-BASE=https://212.8.248.187:8081 bash scripts/smoke.sh    # functional verification (self-signed cert — smoke.sh uses curl -k)
-make deploy-remote-quick H=212.8.248.187 U=sus            # redeploy (rebuilds locally, rsyncs binary, restarts service — config file is preserved)
-make deploy-remote-uninstall H=212.8.248.187 U=sus        # remove entirely
-```
-
-Update this table whenever a new host is deployed to or an existing one is decommissioned — it's the source of truth for "what's actually running where." (The `relay-events` switch above is a case in point: it happened outside this repo's tooling and this table would have gone stale silently otherwise.)
-
-## Ops console
-
-`ui/` is a React/Vite console (topic/subscription management, publish, pull/ack, a live-receive polling toggle, and an activity log) that talks to the gateway's `/admin/v1/*` REST API. It's deployed **independently of the gateway** — its own systemd unit, own port, own self-signed cert — via `scripts/deploy-console-remote.sh`:
+To manage the **systemd** gateway:
 
 ```bash
-bash scripts/deploy-console-remote.sh <host> <user> [--api-base URL] [--project NAME] [--port PORT]
-# e.g. currently deployed as:
-bash scripts/deploy-console-remote.sh 212.8.248.187 sus   # defaults: api-base https://212.8.248.187:8081, project projects/fasal-onprem, port 8082
+ssh sus@212.8.248.187 systemctl status relay-pubsub
+ssh sus@212.8.248.187 cat /etc/relay-pubsub/relay-pubsub.env
+BASE=https://212.8.248.187:8081 bash scripts/smoke-relay-events.sh
+make deploy-remote-quick H=212.8.248.187 U=sus
 ```
 
-It builds `ui/dist` locally (`VITE_API_BASE`/`VITE_PROJECT` baked in at build time — Vite env vars are compile-time, not runtime), rsyncs it to `/opt/relay-pubsub-console/dist` on the target host, and serves it via `http-server` (installed via `npm install` on the host, no global/system package) over HTTPS with a self-signed cert generated once via `openssl` at `/var/lib/relay-pubsub-console/tls/`, running as a dedicated `relay-console` system user under `relay-pubsub-console.service`.
+To manage **k8s** pods:
 
 ```bash
-ssh sus@212.8.248.187 systemctl status relay-pubsub-console
-ssh sus@212.8.248.187 sudo systemctl restart relay-pubsub-console
-ssh sus@212.8.248.187 sudo journalctl -u relay-pubsub-console -f
-curl -k https://212.8.248.187:8082/
+ssh sus@212.8.248.187 kubectl -n relay-pubsub get pods
+ssh sus@212.8.248.187 bash ~/.deployments/k8s-edge-stack/relay-edge/deploy/scripts/k8s-e2e.sh
 ```
 
-**No auth, no firewall** — deliberately deprioritized when this was set up. Anyone who can reach port `8082` gets a fully functional admin UI against the real Fasal-tenant Relay backend (see the gateway row above). Revisit if this needs to be locked down later.
+Update this table when hosts change — it's the source of truth for what's running where.
 
 ---
 
-Two supported deployment targets:
+## Ops console
+
+`ui/` is deployed independently via `scripts/deploy-console-remote.sh` — own systemd unit, port `8082`, self-signed HTTPS. See existing section below (unchanged).
+
+```bash
+bash scripts/deploy-console-remote.sh 212.8.248.187 sus
+curl -k https://212.8.248.187:8082/
+```
+
+---
+
+## Deployment targets
 
 1. [Bare Linux host via systemd](#1-bare-linux-host-via-systemd) — `scripts/deploy-remote.sh`
-2. [Kubernetes pods](#2-kubernetes-pods) — `deploy/k8s/` (plain manifest) or `deploy/helm/relay-pubsub/` (Helm chart)
+2. [Kubernetes pods](#2-kubernetes-pods) — Helm chart, k3s, or **relay-edge stack deploy**
+3. [relay-pubsub + relay-edge stack](#relay-pubsub--relay-edge-stack) — full integration path
 
-Both reuse `scripts/smoke.sh` (a real publish → pull round-trip over the REST API) as the functional proof that a deployment actually works, since the `/healthz`/`/readyz` endpoints are liveness-only — see [Known limitation: health checks don't check the backend](#known-limitation-healthzreadyz-dont-check-the-backend).
+Functional proof for all paths: real publish (and pull for memory backend) via `scripts/smoke.sh` or `scripts/smoke-relay-events.sh` — not `/healthz` alone.
 
 ---
 
@@ -56,136 +59,156 @@ Both reuse `scripts/smoke.sh` (a real publish → pull round-trip over the REST 
 
 ### Prerequisites
 
-- Local machine: `ssh`, `rsync`. For the recommended `--build-local` profile: either a Linux machine with a Rust toolchain, **or** `docker` (used to cross-build a `bookworm`-compatible binary via the project's own `Dockerfile`, so a macOS/Windows operator's machine works too).
-- Target host: Debian/Ubuntu or RHEL/Fedora-family, SSH access (key-based auth strongly recommended — `ssh-copy-id user@host`), passwordless `sudo` if not connecting as root.
+- Local: `ssh`, `rsync`; for `--build-local`: Linux + Rust **or** docker (cross-build via Dockerfile).
+- Target: Debian/Ubuntu or RHEL-family, SSH, passwordless `sudo` recommended.
 
 ### Deploy
 
 ```bash
 bash scripts/deploy-remote.sh <host> <user> --build-local --quick
-# or
 make deploy-remote-quick H=<host> U=<user>
 ```
 
-This:
-1. Builds a release binary locally (`cargo build --release --locked` on Linux, or cross-builds via `docker build --target builder -f Dockerfile .` otherwise).
-2. Copies just that binary (`rsync`) plus `deploy/systemd/` and `scripts/{selftest.sh,smoke.sh}` to `~/.deployments/relay-pubsub` on the remote host.
-3. Installs it to `/usr/local/bin/relay-pubsub`.
-4. Creates a dedicated `relay-pubsub` system user, seeds `/etc/relay-pubsub/relay-pubsub.env` from `deploy/systemd/relay-pubsub.env.example` **only if that file doesn't already exist** (so re-deploys never clobber a host's configured settings), installs `deploy/systemd/relay-pubsub.service`, and does `systemctl enable --now` (or `restart`, if already running).
-5. Runs `scripts/selftest.sh` on the host and reports pass/fail (non-fatal — the binary is installed either way; selftest just tells you if it's actually healthy).
+Profiles: full remote build (default), `--quick`, `--build-local`, `--verify-only`, `--uninstall [--purge]`, `--fleet`. See `scripts/deploy-remote.sh --help`.
 
-### Other profiles
-
-| Command | What it does |
-|---|---|
-| `scripts/deploy-remote.sh <host> <user>` (no flags) | Full profile: rsyncs sources, installs `build-essential`/`gcc` + rustup on the remote host if missing, builds there with `cargo build --release --locked`. Use this if you don't want to build locally at all. |
-| `--quick` (no `--build-local`) | Rsync sources + remote `cargo build`, but skip the system-dependency install step (assumes the host is already provisioned). |
-| `--preflight-only` | SSH connectivity + hostname/OS/arch/mem/disk/sudo checks only. No changes made. |
-| `--verify-only` | Runs `scripts/selftest.sh` on the host. No deploy. |
-| `--uninstall` [`--purge`] | Stops/disables the systemd unit, removes the binary and unit file. `--purge` also removes `/etc/relay-pubsub`. |
-| `--dry-run` | Prints every step it would take without touching the remote host. |
-| `--fleet hosts.txt` | Repeats the chosen profile across every `host user [opts]` line in a file. |
-
-Run `bash scripts/deploy-remote.sh --help` for the full flag list, and `make deploy-remote H=<host> U=<user> ARGS="..."` to pass arbitrary flags through Make.
-
-### Configuration
-
-`/etc/relay-pubsub/relay-pubsub.env` is a systemd `EnvironmentFile` (`KEY=value` per line, `#` comments). It's seeded from `deploy/systemd/relay-pubsub.env.example` on first install and never overwritten afterward — edit it directly on the host and `systemctl restart relay-pubsub` (or just re-run `deploy-remote.sh`, which restarts automatically after a successful install).
+### Configuration highlights
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `PUBSUB_GRPC_ADDR` | `0.0.0.0:50051` | gRPCS listener (Google Pub/Sub compatible API) — TLS-only |
-| `PUBSUB_HTTP_ADDR` | `0.0.0.0:8080` | HTTPS/admin listener, also serves `/healthz`, `/readyz`, `/metrics` — TLS-only |
-| `PUBSUB_TLS_CERT` | `/var/lib/relay-pubsub/tls/cert.pem` | Cert used by both listeners. Self-signed and generated here on first start if missing; point at a CA-signed cert instead if you have one |
-| `PUBSUB_TLS_KEY` | `/var/lib/relay-pubsub/tls/key.pem` | Matching private key |
-| `PUBSUB_TLS_SAN` | `localhost,relay-pubsub` | Comma-separated hostnames/IPs for the *generated* self-signed cert — only takes effect the first time a cert is generated |
-| `RELAY_BACKEND` | `memory` | `memory` (self-contained demo), `http` (invented topics/subscriptions contract), or `relay-events` (Relay's real API — see [RELAY_EVENTS_BACKEND.md](RELAY_EVENTS_BACKEND.md)) |
-| `RELAY_BASE_URL` | `http://relay:9090` | Only used when `RELAY_BACKEND=http` or `relay-events` |
-| `RELAY_AUTH_TOKEN` | *(empty = none)* | Bearer token sent to the Relay backend when `RELAY_BACKEND=http` or `relay-events` |
-| `RELAY_HTTP_TIMEOUT_SECONDS` | `15` | HTTP client timeout to the Relay backend |
-| `RELAY_PUBSUB_AUTH_TOKEN` | *(empty = none)* | If set, gateway requires `Authorization: Bearer <token>` on all `/v1/*` and `/admin/*` requests |
-| `FASAL_GCP_PROJECT` / `FASAL_ACTIONS_TOPIC` / `FASAL_ACTIONS_SUBSCRIPTION` | `fasal-onprem` / `farm-actions` / `farm-actions-sub` | Only used when `RELAY_BACKEND=relay-events` |
+| `PUBSUB_TLS_SAN` | `localhost,relay-pubsub` | **Include `127.0.0.1`** if Relay calls `https://127.0.0.1:8081/v1/actions` |
+| `RELAY_BACKEND` | `memory` | Use `relay-events` for real Relay integration |
+| `RELAY_BASE_URL` | `http://relay:9090` | e.g. `https://127.0.0.1:8443` on lab |
+| `RELAY_TLS_INSECURE` | unset | Set `1` when Relay uses self-signed TLS |
+| `RELAY_AUTH_TOKEN` | empty | JWT — must match relay-edge |
 
-#### Port already in use on the target host?
-
-This is common on shared/multi-purpose boxes (e.g. nginx already on `:8080`, or another service on `:50051`). Just edit the two `PUBSUB_*_ADDR` lines in `/etc/relay-pubsub/relay-pubsub.env` to free ports and restart:
+Example lab `/etc/relay-pubsub/relay-pubsub.env`:
 
 ```bash
-ssh <user>@<host> "sudo sed -i \
-  -e 's|^PUBSUB_HTTP_ADDR=.*|PUBSUB_HTTP_ADDR=0.0.0.0:8081|' \
-  -e 's|^PUBSUB_GRPC_ADDR=.*|PUBSUB_GRPC_ADDR=0.0.0.0:50061|' \
-  /etc/relay-pubsub/relay-pubsub.env && sudo systemctl restart relay-pubsub"
+PUBSUB_HTTP_ADDR=0.0.0.0:8081
+PUBSUB_GRPC_ADDR=0.0.0.0:50061
+PUBSUB_TLS_SAN=localhost,127.0.0.1,212.8.248.187,relay-pubsub
+RELAY_BACKEND=relay-events
+RELAY_BASE_URL=https://127.0.0.1:8443
+RELAY_TLS_INSECURE=1
+RELAY_AUTH_TOKEN=<jwt>
 ```
 
-`scripts/selftest.sh` automatically reads the actual configured ports from this file (falling back to the defaults only if it doesn't exist), so it always checks the right ports even after a change like this.
+Regenerate TLS cert after changing `PUBSUB_TLS_SAN` (delete `/var/lib/relay-pubsub/tls/*.pem`, restart).
 
-### Verify
-
-```bash
-make deploy-remote-verify H=<host> U=<user>           # runs scripts/selftest.sh remotely
-ssh <user>@<host> systemctl status relay-pubsub
-BASE="https://<host>:<http-port>" bash scripts/smoke.sh   # real publish/pull round-trip, run from anywhere (self-signed cert — smoke.sh uses curl -k)
-```
-
-`selftest.sh` checks (in order): binary present + `--version` works, systemd unit active/enabled, both ports listening, `/healthz` + `/readyz` respond, and finally runs `scripts/smoke.sh` itself as the actual functional proof. It exits non-zero if anything fails.
+Full variable list: `deploy/systemd/relay-pubsub.env.example`.
 
 ### Uninstall
 
 ```bash
 make deploy-remote-uninstall H=<host> U=<user>
-# or: bash scripts/deploy-remote.sh <host> <user> --uninstall [--purge]
+bash scripts/deploy-remote.sh <host> <user> --uninstall [--purge]
+```
+
+### Verify (systemd)
+
+```bash
+BASE=https://<host>:8081 bash scripts/smoke-relay-events.sh
+BASE=https://<host>:8081 bash scripts/fasal-catalog-smoke.sh
+BASE=https://<host>:8443 GATEWAY=https://<host>:8081 \
+  bash scripts/fasal-catalog-smoke.sh
 ```
 
 ---
 
 ## 2. Kubernetes pods
 
-Two manifests, for two different scenarios:
+### Helm chart (`deploy/helm/relay-pubsub/`)
 
-- **`deploy/k8s/gateway.yaml`** — plain Deployment + Service. Always assumes `RELAY_BACKEND=http` and requires a `relay-pubsub-secrets`/`relay-token` Secret to already exist in the cluster. This is the "real Relay backend" reference manifest.
-- **`deploy/helm/relay-pubsub/`** — the same Deployment/Service as a parameterized Helm chart. Supports `--set relay.backend=memory` to run self-contained with no Secret required (see below) — the `RELAY_AUTH_TOKEN` env var is only templated in when `relay.backend=http`.
+Defaults updated for production-style deploy:
 
-The image both reference is `ghcr.io/zyvorai/relay-pubsub`, built and pushed by the `.github/workflows/release-image.yml` GitHub Actions workflow (on push to `main` and on `v*` tags — no manual step needed once merged).
+- `relay.backend=relay-events`
+- TLS `emptyDir` volume at `/var/lib/relay-pubsub/tls/`
+- `PUBSUB_TLS_SAN` via `tls.san` value
+- Probes: `scheme: HTTPS`
+- Secret `relay-auth-token` when backend is `http` or `relay-events`
 
-### Local end-to-end test (no real cluster needed)
+### Local k3s (memory backend, no Relay)
 
 ```bash
-bash deploy/scripts/deploy-k3s.sh      # installs k3s if missing, builds+imports the image, helm installs with relay.backend=memory
-bash deploy/scripts/ci-k3s-e2e.sh      # kubectl rollout status + scripts/smoke.sh via port-forward
+bash deploy/scripts/deploy-k3s.sh
+bash deploy/scripts/ci-k3s-e2e.sh
 ```
 
-This is exactly what the `.github/workflows/k3s-e2e.yml` workflow runs in CI on PRs touching `deploy/**`. Useful env vars for `deploy-k3s.sh`: `NAMESPACE` (default `relay-pubsub`), `IMAGE_TAG`, `PULL_REGISTRY` (set to pull a published image instead of building locally), `SKIP_K3S_INSTALL=1` (if k3s is already installed).
+### relay-pubsub + relay-edge stack
 
-### Deploying to a real cluster
+Both pods use **built-in self-signed HTTPS**. Deployed together from the **relay-edge** repo:
 
 ```bash
+# In relay-edge repo (sibling relay-pubsub required):
+RELAY_AUTH_TOKEN="$(cat /tmp/lab-relay.jwt)" \
+  ./deploy/scripts/deploy-k8s-remote.sh <HOST> [USER]
+```
+
+| Release | Namespace | Service |
+|---------|-----------|---------|
+| `relay-pubsub` | `relay-pubsub` | `:8080` HTTPS |
+| `relay-edge` | `relay-edge` | `:18086` HTTPS |
+
+On-cluster verify:
+
+```bash
+bash deploy/scripts/k8s-e2e.sh
+```
+
+Uses `scripts/smoke-relay-events.sh` + relay-edge firewater smoke + atlas/fleet publish path.
+
+**Note:** Pods reach host Relay via `https://<node-ip>:8443` (set from SSH host in deploy script). `host.k3s.internal` is not reliable on all clusters — deploy script uses the explicit host IP.
+
+### Manual Helm (single gateway)
+
+```bash
+kubectl create namespace relay-pubsub
+kubectl -n relay-pubsub create secret generic relay-pubsub-secrets \
+  --from-literal=relay-auth-token="$RELAY_AUTH_TOKEN"
+
 helm upgrade --install relay-pubsub deploy/helm/relay-pubsub \
-  -n relay-pubsub --create-namespace \
-  --set image.tag=<released-tag>
-  # relay.backend defaults to "http" — create the relay-pubsub-secrets/relay-token
-  # Secret first, or override --set relay.backend=memory / relay.baseUrl=...
+  -n relay-pubsub \
+  --set relay.backend=relay-events \
+  --set relay.baseUrl=https://212.8.248.187:8443 \
+  --set relay.tlsInsecure=1 \
+  --set tls.san="localhost,relay-pubsub,relay-pubsub.relay-pubsub.svc.cluster.local"
 ```
 
-or apply the static manifest directly: `kubectl apply -f deploy/k8s/gateway.yaml` (after creating the `relay-pubsub-secrets` Secret it expects).
+---
 
-### Verify
+## Integration with relay-edge
+
+| Component | Role |
+|-----------|------|
+| relay-edge | Stamps farm/simulator events, publishes to gateway |
+| relay-pubsub | Maps Pub/Sub topics → `POST /v1/events`; receives actions at `/v1/actions` |
+| Relay | Policies, notify, ack, act, verify |
+
+Event matrix (all four families): relay-edge `docs/EVENT_MATRIX.md` and `scripts/e2e-events-matrix.sh`.
+
+**Relay action targets** (for farm Act evidence):
 
 ```bash
-kubectl -n relay-pubsub rollout status deployment/relay-pubsub --timeout=180s
-kubectl -n relay-pubsub port-forward svc/relay-pubsub 8080:8080 &
-BASE=https://127.0.0.1:8080 bash scripts/smoke.sh
+RELAY_ACTION_TARGETS=farm-controller=https://127.0.0.1:8081/v1/actions,\
+firewater-controller=https://127.0.0.1:8081/v1/actions,\
+atlas-controller=https://127.0.0.1:8081/v1/actions,\
+fleet-controller=https://127.0.0.1:8081/v1/actions
 ```
+
+Relay needs `RELAY_TLS_INSECURE=1` (or trust gateway cert) when action URL is HTTPS with self-signed cert.
 
 ---
 
 ## Troubleshooting
 
-**Every request returns 401, even with `RELAY_PUBSUB_AUTH_TOKEN` "unset".** Fixed as of this deployment tooling landing (`src/main.rs`) — previously, an `EnvironmentFile`/`.env` line like `RELAY_PUBSUB_AUTH_TOKEN=` (present but empty) was parsed by `clap` as `Some("")`, a real-but-empty required token that no client could ever satisfy, rather than as unset. `main()` now filters both `RELAY_AUTH_TOKEN` and `RELAY_PUBSUB_AUTH_TOKEN` to `None` when empty. If you still see this on an older binary, either upgrade or remove the line from the env file entirely (a variable absent from the file behaves correctly on all versions).
+**503 on publish (relay-events):** Check `RELAY_AUTH_TOKEN`, `RELAY_BASE_URL` reachability from gateway process/pod, and Relay health.
 
-**Client gets a TLS/cert error, or a plaintext client (e.g. `PUBSUB_EMULATOR_HOST=...` against Google's official SDKs) can't connect at all.** Both listeners are TLS-only and self-signed by default. Clients must either skip verification (`curl -k`, `grpcurl -insecure`, gRPC channel credentials built with `InsecureSkipVerify`/a custom trust root) or be pointed at a CA-signed cert via `PUBSUB_TLS_CERT`/`PUBSUB_TLS_KEY`. `PUBSUB_EMULATOR_HOST` specifically forces Google's client SDKs onto a plaintext channel, so it cannot reach this gateway at all — see the [TLS section in the README](../README.md#tls).
+**401 from Relay:** JWT mismatch between edge, pubsub secret, and Relay `RELAY_JWT_SECRET`.
 
-**`Address already in use` / crash-looping systemd unit.** The target host already has something bound to `:8080` or `:50051` (common on shared boxes). See [Port already in use](#port-already-in-use-on-the-target-host) above — check current listeners with `sudo ss -ltnp` before picking replacement ports.
+**Farm Act fails (`mockact_*` or circuit breaker):** Relay action target wrong, gateway TLS not trusted, or `PUBSUB_TLS_SAN` missing `127.0.0.1`.
 
-## Known limitation: `/healthz`/`/readyz` don't check the backend
+**TLS cert errors:** Use `curl -k`; ensure `PUBSUB_TLS_SAN` includes all names/IPs clients validate against before first cert generation.
 
-Both endpoints (`src/rest.rs`) return `{"status":"ok"}` unconditionally — they prove the process is alive, not that `RELAY_BACKEND=http` can actually reach the configured Relay service. A Kubernetes rollout or systemd unit can report "healthy" while the `http` backend is completely unreachable. This is why the k3s test above deliberately uses `relay.backend=memory` (self-contained) rather than trying to validate against a real Relay — and why both verification paths end with `scripts/smoke.sh`, a real publish/pull call, rather than trusting the health endpoints alone. Fixing this (a `RelayBackend::ping()` wired into `/readyz`) is tracked as a follow-up, not part of this deployment tooling.
+## Known limitation: `/healthz`/`/readyz`
+
+Liveness only — do not prove Relay backend connectivity. Always run `smoke.sh` or `smoke-relay-events.sh` after deploy.

@@ -32,6 +32,59 @@ pub const FASAL_CATALOG: &[&str] = &[
     "pest.advisory",
 ];
 
+/// relay-edge firewater + edge event types (industrial plant simulator).
+pub const EDGE_CATALOG: &[&str] = &[
+    "firewater.tank.low",
+    "firewater.pressure.low",
+    "firewater.demand.active",
+    "firewater.pump.fail",
+    "firewater.valve.closed",
+    "firewater.flow.detected",
+    "firewater.freeze.risk",
+    "firewater.hydrant.tamper",
+    "firewater.leak.acoustic",
+    "firewater.pump.vibration",
+    "edge.vision.fire",
+    "edge.comms.down",
+    "edge.power.fail",
+    "edge.gas.alarm",
+    "edge.control.fault",
+    "edge.access.breach",
+    "edge.runtime.down",
+    "telemetry.sample",
+];
+
+/// relay-edge Atlas-class remote edge fleet simulator.
+pub const ATLAS_CATALOG: &[&str] = &[
+    "atlas.link.starlink.degraded",
+    "atlas.link.offline",
+    "atlas.galleon.thermal",
+    "atlas.vision.intrusion",
+    "atlas.iot.flood",
+    "atlas.uav.rtb",
+];
+
+/// relay-edge master fleet catalog (all edge classes).
+pub const FLEET_CATALOG: &[&str] = &[
+    "fleet.power.island",
+    "fleet.robot.lost",
+    "fleet.ot.ids",
+    "fleet.env.exceedance",
+    "fleet.dc.thermal",
+    "fleet.access.fault",
+];
+
+/// All pre-registered topic names for relay-events admin UI visibility.
+pub fn relay_events_catalog() -> Vec<&'static str> {
+    FASAL_CATALOG
+        .iter()
+        .chain(EDGE_CATALOG.iter())
+        .chain(ATLAS_CATALOG.iter())
+        .chain(FLEET_CATALOG.iter())
+        .copied()
+        .collect()
+}
+
 #[derive(Debug, Clone, Parser)]
 #[command(name = "relay-pubsub")]
 #[command(about = "Google Cloud Pub/Sub compatibility gateway for Zyvor Relay")]

@@ -1,56 +1,81 @@
 # Relay events backend
 
-`--backend relay-events` (`RELAY_BACKEND=relay-events`) targets Zyvor Relay's real, already-shipped API instead of the invented topics/subscriptions contract `http_backend.rs` speaks (see [`docs/relay-native-api.md`](relay-native-api.md) and [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) for that older path). Implementation: [`src/relay_events_backend.rs`](../src/relay_events_backend.rs) + [`src/action_gateway.rs`](../src/action_gateway.rs).
+The production path: Pub/Sub topic publish → Relay `POST /v1/events`, plus Action Gateway for outbound acts.
 
-This is the same wire contract and rationale as [zyvor/relay's `examples/fasal-pubsub-gateway`](https://github.com/zyvorai/relay) (a Go implementation of the same idea, built first) — this backend brings that same real-Relay integration to this project's more complete Google Pub/Sub protocol layer (DLQ, seek-to-time, real StreamingPull, metrics, CI, Helm/systemd/k3s deploy tooling).
+← [Docs hub](README.md) · [Getting started](GETTING_STARTED.md)
 
-## Wire contract
+---
 
-Relay's own API has no topics/subscriptions — it's event-lifecycle-shaped. So the contract is defined here, not reverse-engineered from Relay:
+`--backend relay-events` (`RELAY_BACKEND=relay-events`) targets Zyvor Relay's real API. Implementation: [`src/relay_events_backend.rs`](../src/relay_events_backend.rs) + [`src/action_gateway.rs`](../src/action_gateway.rs).
 
-- **Topic name is the Relay event type.** Publish to a topic literally named `irrigation.required`, `disease.risk.critical`, etc. — the fixed catalog in `src/config.rs`'s `FASAL_CATALOG`, matching `docs/FASAL_ACCOMMODATION.md` #4.1/#4.2 in the zyvor/relay repo. Publishing to any topic other than the actions topic (below) forwards to Relay regardless of catalog membership — the catalog is only pre-registered at startup for admin-UI visibility.
-- **Message attributes/data map onto Relay's event schema:** attribute `severity` -> event severity, attribute `source` -> event source, attribute `idempotency_key` -> event idempotency key (falls back to a hash of the message content — topic + source + severity + data — not the Pub/Sub message ID, so a retried publish of the same logical message still dedupes at Relay), message `data` (JSON) -> event `data`.
+## Topic = event type
+- **Pre-registered catalogs** in `src/config.rs` (admin UI visibility only — publish works for any non-actions topic):
 
-## Inbound: publish -> Relay events
+| Catalog | Count | Examples |
+|---------|-------|----------|
+| `FASAL_CATALOG` | 10 | `irrigation.required`, `crop.advisory`, … |
+| `EDGE_CATALOG` | 18 | `firewater.tank.low`, `edge.comms.down`, `telemetry.sample`, … |
+| `ATLAS_CATALOG` | 6 | `atlas.link.starlink.degraded`, `atlas.galleon.thermal`, … |
+| `FLEET_CATALOG` | 6 | `fleet.power.island`, `fleet.robot.lost`, … |
 
-Publish via gRPC (`Publisher.publish`) or REST (`POST /v1/projects/{project}/topics/{topic}:publish`) to any topic other than the actions topic. Each publish becomes `POST {RELAY_BASE_URL}/v1/events`.
+Combined via `relay_events_catalog()` (40 topics at startup).
 
-## Outbound: Relay actions -> pull/ack
+- **Message mapping:** attribute `severity` → event severity; `source` → source; `idempotency_key` → dedupe key; `data` (JSON) → event `data`.
 
-This backend also mounts a new route, `POST /v1/actions`, implementing Relay's Action Gateway contract (required `Idempotency-Key`, idempotent retries return the same result). Point Relay at it:
+## Inbound: publish → Relay
+
+REST: `POST /v1/projects/{project}/topics/{topic}:publish` → `POST {RELAY_BASE_URL}/v1/events`.
+
+[relay-edge](https://github.com/zyvorai/relay-edge) publishes the same way via `GATEWAY_BASE_URL` when simulators have `"publish": true`.
+
+## Outbound: Relay actions → pull/ack
+
+`POST /v1/actions` implements Relay's Action Gateway contract. Point Relay:
 
 ```bash
-RELAY_ACTION_TARGETS=farm-controller=https://<this-host>:<PUBSUB_HTTP_ADDR-port>/v1/actions
+RELAY_ACTION_TARGETS=farm-controller=https://<gateway-host>:<port>/v1/actions,\
+firewater-controller=https://<gateway-host>:<port>/v1/actions,\
+atlas-controller=https://<gateway-host>:<port>/v1/actions,\
+fleet-controller=https://<gateway-host>:<port>/v1/actions
 ```
 
-This gateway's REST listener is TLS-only (see the [TLS section in the README](../README.md#tls)) — if it's using the default self-signed cert, whatever calls this URL (Relay itself) needs to skip certificate verification against it, the same way this backend's own outbound calls to Relay can via `RELAY_TLS_INSECURE` below.
+Gateway is **TLS-only**. Relay must either trust the gateway cert or set `RELAY_TLS_INSECURE=1` on **Relay's** outbound action client. Include `127.0.0.1` in `PUBSUB_TLS_SAN` when Relay calls loopback.
 
-Each action is enqueued as a message on the actions topic (`FASAL_ACTIONS_TOPIC`, default `farm-actions`) via the backend's normal `publish` — which for that one topic store-and-forwards locally (an inner `MemoryBackend`) instead of calling Relay, since this is the Relay -> consumer direction. The gateway returns 2xx immediately: a 2xx means "durably accepted," not "physically executed," matching the Action Gateway contract's own model — verification stays Relay's separate telemetry-probe step, unaffected by this backend. Consumers pull via `Subscriber.Pull` or `StreamingPull` and ack normally — this gets `MemoryBackend`'s DLQ-after-max-attempts and nack/redelivery for free.
+Actions enqueue on `farm-actions` topic (local memory backend) for Pub/Sub pull/ack consumers.
 
 ## Config
 
 | Var | Default | Notes |
 |---|---|---|
 | `RELAY_BACKEND` | `memory` | Set to `relay-events` |
-| `RELAY_BASE_URL` | `http://relay:9090` | Relay's real REST API |
-| `RELAY_AUTH_TOKEN` | unset | Sent as `?token=demo-token` (Relay demo mode) if literally `demo-token`, else `Authorization: Bearer` |
-| `RELAY_TLS_INSECURE` | `false` (`1`/`true`/`yes` to enable) | Skip certificate verification on this backend's outbound HTTP client to `RELAY_BASE_URL` — needed if Relay itself is running with a self-signed/internal cert |
-| `FASAL_GCP_PROJECT` | `fasal-onprem` | Project segment in Pub/Sub resource names |
-| `FASAL_ACTIONS_TOPIC` / `FASAL_ACTIONS_SUBSCRIPTION` | `farm-actions` / `farm-actions-sub` | Outbound action queue, pre-created at startup |
+| `RELAY_BASE_URL` | `http://relay:9090` | e.g. `https://127.0.0.1:8443` |
+| `RELAY_AUTH_TOKEN` | unset | Bearer JWT |
+| `RELAY_TLS_INSECURE` | `false` | `1` for self-signed Relay TLS |
+| `PUBSUB_TLS_SAN` | `localhost,relay-pubsub` | Add node IP + `127.0.0.1` for action callbacks |
+| `FASAL_GCP_PROJECT` | `fasal-onprem` | Pub/Sub project segment |
+| `FASAL_ACTIONS_TOPIC` / `FASAL_ACTIONS_SUBSCRIPTION` | `farm-actions` / `farm-actions-sub` | Action queue |
 
-## Open item
-
-The exact schema Fasal's own publishing code produces is not yet confirmed against this contract — same open item as the Go gateway. `RelayEventsBackend::accept_event` is intentionally the single place that would need to change.
-
-## Tests
+## Tests & smoke
 
 ```bash
-cargo test --release relay_events_backend
-cargo test --release action_gateway
+cargo test --release relay_events_backend action_gateway
 ```
 
-`publish_all_catalog_event_types` covers all 10 `FASAL_CATALOG` entries, not just `irrigation.required`. For a real end-to-end check against a running Relay + this binary:
+End-to-end (HTTPS, self-signed — scripts use `curl -k`):
 
 ```bash
-BASE=http://127.0.0.1:8080 GATEWAY=https://127.0.0.1:8083 ./scripts/fasal-catalog-smoke.sh
+# Single relay-events publish
+BASE=https://127.0.0.1:8081 bash scripts/smoke-relay-events.sh
+
+# Full farm catalog (10 types, 5 critical Act)
+BASE=https://127.0.0.1:8443 GATEWAY=https://127.0.0.1:8081 \
+  bash scripts/fasal-catalog-smoke.sh
+
+# All four families via relay-edge (sibling repo)
+BASE=https://127.0.0.1:8443 GATEWAY=https://127.0.0.1:8081 EDGE=http://127.0.0.1:18086 \
+  ../relay-edge/scripts/e2e-events-matrix.sh
 ```
+
+## Kubernetes
+
+Helm chart supports `relay.backend=relay-events`, TLS volume, and JWT secret. Full stack with relay-edge: see relay-edge `deploy/scripts/deploy-k8s-remote.sh` and [DEPLOYMENT.md](DEPLOYMENT.md).

@@ -1,21 +1,34 @@
-replicaCount: 2
+replicaCount: 1
 image:
   repository: ghcr.io/zyvorai/relay-pubsub
   tag: latest
   pullPolicy: IfNotPresent
+
+tls:
+  certPath: /var/lib/relay-pubsub/tls/cert.pem
+  keyPath: /var/lib/relay-pubsub/tls/key.pem
+  san: "localhost,relay-pubsub,relay-pubsub.relay-pubsub.svc,relay-pubsub.relay-pubsub.svc.cluster.local"
+
 relay:
-  backend: http
-  baseUrl: http://relay.zyvor-system.svc:9090
+  backend: relay-events
+  baseUrl: https://REPLACE_HOST:8443
+  tlsInsecure: "1"
+  gcpProject: fasal-onprem
+  actionsTopic: farm-actions
+  actionsSubscription: farm-actions-sub
   existingSecret: relay-pubsub-secrets
-  tokenKey: relay-token
+  tokenKey: relay-auth-token
+
 gatewayAuth:
   enabled: false
   existingSecret: relay-pubsub-secrets
   tokenKey: gateway-token
+
 service:
   type: ClusterIP
   grpcPort: 50051
   httpPort: 8080
+
 resources:
   requests: { cpu: 100m, memory: 128Mi }
   limits: { cpu: "2", memory: 1Gi }

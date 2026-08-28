@@ -29,9 +29,9 @@ pass() { echo "  ✅ $1"; }
 fail_soft() { echo "  ❌ $1" >&2; FAILED=$((FAILED + 1)); }
 
 echo "== Fasal relay-events backend catalog smoke — gateway=$GATEWAY relay=$BASE =="
-curl -fsS "$BASE/healthz" >/dev/null
+curl -k -fsS "$BASE/healthz" >/dev/null
 curl -k -fsS "$GATEWAY/healthz" >/dev/null
-LOGIN=$(curl -fsS -X POST "$BASE/v1/auth/login" -H 'content-type: application/json' -d "{\"username\":\"$USER\",\"password\":\"$PASS\"}")
+LOGIN=$(curl -k -fsS -X POST "$BASE/v1/auth/login" -H 'content-type: application/json' -d "{\"username\":\"$USER\",\"password\":\"$PASS\"}")
 TOKEN=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])' <<<"$LOGIN")
 AUTH=(-H "Authorization: Bearer $TOKEN")
 
@@ -51,7 +51,7 @@ CATALOG=(
 
 find_event() {
   local key=$1
-  curl -fsS "$BASE/v1/events?limit=50" "${AUTH[@]}" | python3 -c "
+  curl -k -fsS "$BASE/v1/events?limit=50" "${AUTH[@]}" | python3 -c "
 import json, sys
 d = json.load(sys.stdin)
 for e in d['items']:
@@ -102,11 +102,11 @@ for entry in "${CATALOG[@]}"; do
       fail_soft "policy_id=$policy_id, want pol_critical_farm"
       continue
     fi
-    curl -fsS -X POST "$BASE/v1/events/$event_id/ack" "${AUTH[@]}" -H 'content-type: application/json' -d '{"decision":"approve"}' >/dev/null
+    curl -k -fsS -X POST "$BASE/v1/events/$event_id/ack" "${AUTH[@]}" -H 'content-type: application/json' -d '{"decision":"approve"}' >/dev/null
     action=""
     for _ in $(seq 1 20); do
       sleep 0.5
-      action=$(curl -fsS "$BASE/v1/events/$event_id" "${AUTH[@]}" | python3 -c '
+      action=$(curl -k -fsS "$BASE/v1/events/$event_id" "${AUTH[@]}" | python3 -c '
 import json, sys
 d = json.load(sys.stdin)
 actions = d.get("actions") or []
@@ -132,7 +132,7 @@ if actions:
       fail_soft "policy_id=$policy_id, want pol_advisory"
       continue
     fi
-    actions=$(curl -fsS "$BASE/v1/events/$event_id" "${AUTH[@]}" | python3 -c 'import json,sys; print(len(json.load(sys.stdin).get("actions") or []))')
+    actions=$(curl -k -fsS "$BASE/v1/events/$event_id" "${AUTH[@]}" | python3 -c 'import json,sys; print(len(json.load(sys.stdin).get("actions") or []))')
     if [[ "$actions" != "0" ]]; then
       fail_soft "advisory event unexpectedly has $actions action(s)"
     else

@@ -2,6 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: relay-pubsub
+    app.kubernetes.io/part-of: zyvor-relay
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -18,20 +21,42 @@ spec:
             - { name: grpc, containerPort: 50051 }
             - { name: http, containerPort: 8080 }
           env:
+            - { name: PUBSUB_GRPC_ADDR, value: "0.0.0.0:50051" }
+            - { name: PUBSUB_HTTP_ADDR, value: "0.0.0.0:8080" }
+            - { name: PUBSUB_TLS_CERT, value: {{ .Values.tls.certPath | quote }} }
+            - { name: PUBSUB_TLS_KEY, value: {{ .Values.tls.keyPath | quote }} }
+            - { name: PUBSUB_TLS_SAN, value: {{ .Values.tls.san | quote }} }
             - { name: RELAY_BACKEND, value: {{ .Values.relay.backend | quote }} }
             - { name: RELAY_BASE_URL, value: {{ .Values.relay.baseUrl | quote }} }
-            {{- if eq .Values.relay.backend "http" }}
+            - { name: RELAY_TLS_INSECURE, value: {{ .Values.relay.tlsInsecure | quote }} }
+            - { name: FASAL_GCP_PROJECT, value: {{ .Values.relay.gcpProject | quote }} }
+            - { name: FASAL_ACTIONS_TOPIC, value: {{ .Values.relay.actionsTopic | quote }} }
+            - { name: FASAL_ACTIONS_SUBSCRIPTION, value: {{ .Values.relay.actionsSubscription | quote }} }
+            {{- if or (eq .Values.relay.backend "http") (eq .Values.relay.backend "relay-events") }}
             - name: RELAY_AUTH_TOKEN
               valueFrom:
-                secretKeyRef: { name: {{ .Values.relay.existingSecret }}, key: {{ .Values.relay.tokenKey }} }
+                secretKeyRef:
+                  name: {{ .Values.relay.existingSecret }}
+                  key: {{ .Values.relay.tokenKey }}
             {{- end }}
             {{- if .Values.gatewayAuth.enabled }}
             - name: RELAY_PUBSUB_AUTH_TOKEN
               valueFrom:
-                secretKeyRef: { name: {{ .Values.gatewayAuth.existingSecret }}, key: {{ .Values.gatewayAuth.tokenKey }} }
+                secretKeyRef:
+                  name: {{ .Values.gatewayAuth.existingSecret }}
+                  key: {{ .Values.gatewayAuth.tokenKey }}
             {{- end }}
+          volumeMounts:
+            - { name: tls, mountPath: /var/lib/relay-pubsub/tls }
           readinessProbe:
             httpGet: { path: /readyz, port: http, scheme: HTTPS }
+            initialDelaySeconds: 2
+            periodSeconds: 5
           livenessProbe:
             httpGet: { path: /healthz, port: http, scheme: HTTPS }
+            initialDelaySeconds: 5
+            periodSeconds: 10
           resources: {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: tls
+          emptyDir: {}

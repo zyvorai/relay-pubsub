@@ -1,295 +1,143 @@
-# Zyvor Relay Pub/Sub Gateway
+# relay-pubsub
 
-A **Google Cloud Pub/Sub compatibility gateway for Zyvor Relay**.
+**Google Cloud Pub/Sub compatibility for [Zyvor Relay](https://github.com/zyvorai/relay).**
 
-This is intentionally a separate Relay component: applications speak familiar Google Pub/Sub gRPC/REST APIs to the gateway, while the gateway delegates durable messaging to Zyvor Relay through a small `RelayBackend` interface.
+Speak familiar Pub/Sub gRPC and REST. The gateway handles translation, TLS, metrics, and — with `RELAY_BACKEND=relay-events` — forwards every publish to Relay's real **`POST /v1/events`** API.
 
 ```text
-Google Pub/Sub SDK / REST
-          |
-          v
-+-------------------------+
-| relay-pubsub            |
-| google.pubsub.v1        |
-| gRPC :50051             |
-| REST :8080              |
-+-----------+-------------+
-            |
-            | RelayBackend
-            v
-+-------------------------+
-| Zyvor Relay             |
-| topics / streams        |
-| subscriptions / cursors |
-| ACK / retry / DLQ       |
-| replay / replication    |
-+-------------------------+
+  Google SDK / curl          relay-pubsub              Zyvor Relay
+  ─────────────────          ──────────────            ───────────
+  Publish "irrigation.    →   topic = event type   →   Accept
+  required"                    self-signed HTTPS        Notify · Act
+  Pull / StreamingPull    ←   action queue          ←   /v1/actions
 ```
 
-## What is implemented
+[![Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
-### Google-compatible gRPC methods
+---
 
-**Publisher**
-- `CreateTopic`
-- `GetTopic`
-- `ListTopics`
-- `DeleteTopic`
-- `Publish`
+## Why this exists
 
-**Subscriber**
-- `CreateSubscription`
-- `GetSubscription`
-- `ListSubscriptions`
-- `DeleteSubscription`
-- `Pull`
-- `StreamingPull`
-- `Acknowledge`
-- `ModifyAckDeadline`
-- `Seek` by timestamp
+Relay's API is **event-lifecycle shaped** — not topics and subscriptions. But your edge apps, SDKs, and ops tooling speak **Google Pub/Sub**.
 
-The service/package names are exactly `google.pubsub.v1.Publisher` and `google.pubsub.v1.Subscriber`, so an official Pub/Sub client in emulator/plaintext mode can address the gateway.
+relay-pubsub sits in the middle: full Publisher/Subscriber surface on the front, `RelayBackend` on the back. Production path: **`relay-events`** → Relay's shipped API. Demo path: **`memory`** → instant local round-trip.
 
-### Google-style REST methods
+Pair with **[relay-edge](https://github.com/zyvorai/relay-edge)** for stamped farm events and industrial simulators that publish through the same gateway.
 
-- `PUT/GET/DELETE /v1/projects/{project}/topics/{topic}`
-- `GET /v1/projects/{project}/topics`
-- `POST /v1/projects/{project}/topics/{topic}:publish`
-- `PUT/GET/DELETE /v1/projects/{project}/subscriptions/{subscription}`
-- `GET /v1/projects/{project}/subscriptions`
-- `POST .../{subscription}:pull`
-- `POST .../{subscription}:acknowledge`
-- `POST .../{subscription}:modifyAckDeadline`
-- `POST .../{subscription}:seek`
+---
 
-### Messaging semantics in the embedded demo backend
+## Quick start
 
-- subscriptions start at messages published after subscription creation
-- explicit ACK
-- NACK by `ModifyAckDeadline(..., 0)`
-- ack-deadline expiration and redelivery
-- delivery-attempt counting
-- dead-letter topic after configured attempts
-- timestamp replay / seek
-- ordering-key preservation
-- attributes/metadata
-- message IDs and publish timestamps
+```bash
+docker compose up --build
+bash scripts/smoke.sh          # curl -k, self-signed TLS
+```
 
-### Operations
-
-- `/healthz`
-- `/readyz`
-- `/metrics` (Prometheus)
-- optional bearer auth
-- Dockerfile
-- Docker Compose
-- SSH remote deploy + systemd unit (bare Linux host)
-- Kubernetes manifest
-- Helm chart + local k3s test workflow
-- GitHub Actions CI (build/test + image release + k3s E2E)
-- React/Vite operations console — deployable standalone via `scripts/deploy-console-remote.sh` (own HTTPS, own self-signed cert, independent of the gateway process — see [Ops console](docs/DEPLOYMENT.md#ops-console))
-
-## Backends
-
-### 1. Memory backend — immediate demo/test
+Or with Cargo:
 
 ```bash
 cargo run -- --backend memory
 ```
 
-Nothing else is needed. This backend is intentionally ephemeral and is not a production message store.
+**New here?** → [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)
 
-### 2. Zyvor Relay HTTP backend — production integration
+---
 
-```bash
-export RELAY_BACKEND=http
-export RELAY_BASE_URL=http://relay.zyvor-system.svc:9090
-export RELAY_AUTH_TOKEN='...'
-cargo run
-```
+## Documentation
 
-The exact Relay-native API expected by this adapter is documented in [`docs/relay-native-api.md`](docs/relay-native-api.md) — this is an **invented** contract (`/v1/topics`, `/v1/messages:publish|pull|ack`, etc.), not Relay's real, already-shipped API. Use it only if Relay's real API is later changed to match it.
+| Guide | What's inside |
+|-------|---------------|
+| [📖 Docs hub](docs/README.md) | Index of everything |
+| [🚀 Getting started](docs/GETTING_STARTED.md) | Docker, Cargo, first publish |
+| [⚡ Relay events backend](docs/RELAY_EVENTS_BACKEND.md) | Production backend, catalogs, actions |
+| [🚢 Deployment](docs/DEPLOYMENT.md) | systemd, k8s, lab instances |
+| [🏗 Architecture](docs/ARCHITECTURE.md) | Boundaries, HA, tenant model |
+| [📜 Native API (legacy)](docs/relay-native-api.md) | Invented `http` backend contract |
 
-### 3. Zyvor Relay events backend — targets Relay's real API today
+---
+
+## Backends at a glance
+
+| Backend | Relay needed? | Use case |
+|---------|---------------|----------|
+| `memory` | No | CI, k3s smoke, demos |
+| `http` | Yes (invented API) | Legacy — prefer relay-events |
+| **`relay-events`** | Yes (real API) | **Fasal, relay-edge, production** |
 
 ```bash
 export RELAY_BACKEND=relay-events
-export RELAY_BASE_URL=https://relay.example.com
-export RELAY_AUTH_TOKEN='...'
+export RELAY_BASE_URL=https://relay.example.com:8443
+export RELAY_AUTH_TOKEN=<jwt>
+export RELAY_TLS_INSECURE=1    # if Relay uses self-signed TLS
 cargo run
 ```
 
-Unlike the HTTP backend above, this targets Relay's real, already-shipped event-lifecycle API (`POST /v1/events`) and Action Gateway contract (`POST /v1/actions`) directly — see [`docs/RELAY_EVENTS_BACKEND.md`](docs/RELAY_EVENTS_BACKEND.md). This is the backend to use for the Fasal on-prem integration.
+---
 
-## Quick start with Docker Compose
+## What's implemented
 
-```bash
-docker compose up --build
-```
+<details>
+<summary><strong>Google-compatible surface</strong> (click to expand)</summary>
 
-Endpoints (gRPC and REST are TLS-only — see [TLS](#tls) below):
+**gRPC:** `CreateTopic`, `Publish`, `Pull`, `StreamingPull`, `Acknowledge`, `ModifyAckDeadline`, `Seek`, subscription CRUD — package names `google.pubsub.v1.Publisher` / `Subscriber`.
 
-- gRPCS: `127.0.0.1:50051`
-- REST/admin: `https://127.0.0.1:8080`
-- UI: `http://127.0.0.1:3000`
+**REST:** Full `/v1/projects/{project}/topics/*` and `subscriptions/*` admin + data plane.
 
-Then:
+**Semantics (memory backend):** explicit ACK, NACK via zero deadline, DLQ after max attempts, ordering keys, timestamp seek, Prometheus metrics.
 
-```bash
-bash scripts/smoke.sh
-```
+</details>
 
-## Deploying to Linux
+---
 
-Full reference (flags, config, troubleshooting, and a record of currently-deployed instances): [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+## TLS — no reverse proxy needed
 
-### Bare host via systemd
+gRPC and REST are **TLS-only**. First start generates a self-signed cert at `/var/lib/relay-pubsub/tls/` (configurable). Set `PUBSUB_TLS_SAN` before first start to embed your host IP and service DNS names.
 
 ```bash
-bash scripts/deploy-remote.sh <host> <user> --build-local --quick
-# or: make deploy-remote-quick H=<host> U=<user>
+# Clients
+curl -k https://localhost:8080/healthz
+grpcurl -insecure localhost:50051 list
 ```
 
-This builds a release binary locally (cross-building via Docker if the operator's machine isn't Linux), copies it to the target Debian/Ubuntu host over SSH, and installs it as a hardened `relay-pubsub.service` systemd unit. See `scripts/deploy-remote.sh --help` for `--verify-only`, `--uninstall`, `--dry-run`, and `--fleet` (multi-host) options, and `deploy/systemd/` for the unit file and env template.
+See [Getting started](docs/GETTING_STARTED.md) for the `PUBSUB_EMULATOR_HOST` caveat with Google's plaintext emulator mode.
 
-Verify a deployment:
+---
+
+## Deploy
+
+| Target | Command |
+|--------|---------|
+| **Linux host** | `bash scripts/deploy-remote.sh <HOST> <USER> --build-local --quick` |
+| **Local k3s** | `bash deploy/scripts/deploy-k3s.sh` |
+| **k8s + relay-edge** | From relay-edge: `./deploy/scripts/deploy-k8s-remote.sh <HOST>` |
+
+Verify:
 
 ```bash
-make deploy-remote-verify H=<host> U=<user>        # runs scripts/selftest.sh remotely
-BASE="https://<host>:8080" bash scripts/smoke.sh   # functional publish/pull round-trip (self-signed cert — smoke.sh uses curl -k)
+BASE=https://<host>:8081 bash scripts/smoke-relay-events.sh
+BASE=https://<host>:8443 GATEWAY=https://<host>:8081 bash scripts/fasal-catalog-smoke.sh
 ```
 
-### Ops console (standalone)
+Full reference → [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
-```bash
-bash scripts/deploy-console-remote.sh <host> <user> [--api-base URL] [--project NAME] [--port PORT]
-```
+---
 
-Builds `ui/dist` locally (`VITE_API_BASE`/`VITE_PROJECT` baked in at build time) and deploys it to `<host>` as its own `relay-pubsub-console.service` — a self-signed-HTTPS static file server (`http-server`), independent of the gateway's process/port. No nginx, no Docker required on the target. See [Ops console](docs/DEPLOYMENT.md#ops-console) for management commands.
+## Part of the Zyvor stack
 
-### Kubernetes pods
+| Project | Role |
+|---------|------|
+| **[relay](https://github.com/zyvorai/relay)** | Control plane |
+| **relay-pubsub** (this repo) | Pub/Sub gateway |
+| **[relay-edge](https://github.com/zyvorai/relay-edge)** | Farm domain + simulators |
 
-`deploy/k8s/gateway.yaml` (plain manifest) and `deploy/helm/relay-pubsub/` (Helm chart) both deploy `relay-pubsub` as a 2-replica Deployment + Service. The image is built and pushed to `ghcr.io/zyvorai/relay-pubsub` by the `release-image` GitHub Actions workflow.
+---
 
-To test the pod deployment end-to-end on a disposable local k3s cluster (no real cluster or Relay backend needed):
+## Production boundary
 
-```bash
-bash deploy/scripts/deploy-k3s.sh     # installs k3s, builds+imports the image, helm installs
-bash deploy/scripts/ci-k3s-e2e.sh     # rollout status + scripts/smoke.sh against the Service
-```
+This is a **complete runnable MVP**, not a claim of 100% Google Pub/Sub parity. Durable replication and tenant isolation live in Relay core. See the [compatibility roadmap](docs/ARCHITECTURE.md#compatibility-roadmap) for what's next.
 
-This is also what the `k3s-e2e` GitHub Actions workflow runs on PRs touching `deploy/**`.
-
-## TLS
-
-The gRPC and REST listeners are **TLS-only** (gRPCS/HTTPS) — the gateway terminates TLS itself, no reverse proxy required. On first start, if `PUBSUB_TLS_CERT`/`PUBSUB_TLS_KEY` don't already exist, a self-signed cert/key pair is generated and persisted there (`/var/lib/relay-pubsub/tls/{cert,key}.pem` by default) and reused on every restart. Point `PUBSUB_TLS_CERT`/`PUBSUB_TLS_KEY` at a CA-signed cert instead if you have one. `PUBSUB_TLS_SAN` (comma-separated) sets the generated cert's hostnames/IPs — only takes effect the first time a cert is generated.
-
-Clients that don't trust the self-signed cert need to skip verification: `curl -k`, `grpcurl -insecure`, etc.
-
-**Caveat:** because gRPC is TLS-only, Google's official client libraries in **emulator/plaintext mode** (`PUBSUB_EMULATOR_HOST=...`) can no longer reach the gateway — that mode forces a plaintext channel in the SDK itself. `examples/python_google_client.py` needs a real TLS-aware channel (e.g. `grpc.secure_channel` with the generated cert as a trusted root) instead of `PUBSUB_EMULATOR_HOST` to work against this build.
-
-## REST example
-
-Self-signed cert by default — add `-k` to skip curl's certificate verification (or point `--cacert` at the generated `cert.pem`).
-
-Create a topic:
-
-```bash
-curl -k -X PUT https://localhost:8080/v1/projects/demo/topics/orders \
-  -H 'content-type: application/json' \
-  -d '{"labels":{"team":"payments"}}'
-```
-
-Create a subscription:
-
-```bash
-curl -k -X PUT https://localhost:8080/v1/projects/demo/subscriptions/orders-worker \
-  -H 'content-type: application/json' \
-  -d '{"topic":"projects/demo/topics/orders","ackDeadlineSeconds":20,"enableMessageOrdering":true}'
-```
-
-Publish:
-
-```bash
-curl -k -X POST https://localhost:8080/v1/projects/demo/topics/orders:publish \
-  -H 'content-type: application/json' \
-  -d '{"messages":[{"data":"aGVsbG8=","attributes":{"region":"in"},"orderingKey":"customer-17"}]}'
-```
-
-Pull:
-
-```bash
-curl -k -X POST https://localhost:8080/v1/projects/demo/subscriptions/orders-worker:pull \
-  -H 'content-type: application/json' \
-  -d '{"maxMessages":10}'
-```
-
-## Authentication
-
-For local Google-client compatibility, leave `RELAY_PUBSUB_AUTH_TOKEN` unset.
-
-To require a bearer token at the gateway:
-
-```bash
-export RELAY_PUBSUB_AUTH_TOKEN='gateway-secret'
-```
-
-For production, place identity-aware authentication in front of the gateway (OIDC/mTLS/API gateway) and map Google project names to authenticated Relay tenants. A literal `projects/foo` string must never be treated as proof of tenant identity.
-
-## Repository layout
-
-```text
-.
-├── proto/google/pubsub/v1/pubsub.proto
-├── src/
-│   ├── backend.rs               # vendor-neutral RelayBackend trait
-│   ├── memory.rs                # runnable demo backend + tests
-│   ├── http_backend.rs          # adapter into invented Relay-native API
-│   ├── relay_events_backend.rs  # adapter into Relay's real API (docs/RELAY_EVENTS_BACKEND.md)
-│   ├── action_gateway.rs        # POST /v1/actions receiver for relay-events
-│   ├── grpc.rs                  # Google Pub/Sub gRPC compatibility
-│   ├── rest.rs                  # Google REST + admin endpoints
-│   ├── metrics.rs
-│   └── main.rs
-├── ui/                     # React/Vite Relay console
-├── deploy/k8s/             # plain k8s manifest (real Relay backend)
-├── deploy/helm/            # Helm chart (k8s manifest + local k3s smoke test)
-├── deploy/systemd/         # systemd unit + env template for bare-host deploys
-├── deploy/scripts/         # k3s install/deploy/e2e-verify scripts
-├── docs/DEPLOYMENT.md      # full deploy reference + live-instance record
-├── examples/
-└── scripts/                # deploy-remote.sh, selftest.sh, smoke.sh, fasal-catalog-smoke.sh
-```
-
-## Important production boundary
-
-This repository is a **complete runnable compatibility MVP**, not a claim of 100% Google Pub/Sub behavioral parity.
-
-Before calling it drop-in production parity, add/verify:
-
-1. exact official Google proto surface rather than the deliberately minimal wire-compatible subset;
-2. snapshots and snapshot-based `Seek`;
-3. push-subscription delivery worker and authenticated push;
-4. Pub/Sub schema APIs and schema validation;
-5. update masks / update methods and IAM APIs if customers require them;
-6. full pagination tokens;
-7. Google exactly-once edge semantics and durable ACK IDs across gateway failover;
-8. ordering-key serialization across multiple consumers/gateway replicas;
-9. quota/error/detail compatibility;
-10. conformance tests against the official Pub/Sub emulator and selected Google client libraries.
-
-Those belong in this compatibility project. Durable replication, persistence, tenant isolation and storage durability belong in **Zyvor Relay core**.
-
-## Recommended repo relationship
-
-```text
-zyvorai/relay                 # existing/core product
-zyvorai/relay-gateway         # future common protocol gateway framework
-zyvorai/relay-pubsub          # this repository
-```
-
-As Kafka, NATS, MQTT, SQS/SNS or Azure Service Bus adapters are added, extract the reusable auth/tenant/metrics/backend pieces into `relay-gateway` without contaminating Relay core with vendor-specific APIs.
+---
 
 ## License
 
-[Apache-2.0](LICENSE) · Copyright 2026 Zyvor AI Labs
+Apache-2.0 · Copyright 2026 Zyvor AI Labs

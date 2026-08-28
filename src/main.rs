@@ -5,7 +5,7 @@ use clap::Parser;
 use relay_pubsub::{
     action_gateway::{self, ActionGatewayState},
     backend::RelayBackend,
-    config::{BackendKind, Config, FASAL_CATALOG},
+    config::{relay_events_catalog, BackendKind, Config},
     google::pubsub::v1::{publisher_server::PublisherServer, subscriber_server::SubscriberServer},
     grpc::GatewayService,
     http_backend::HttpRelayBackend,
@@ -80,7 +80,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Pre-register the fixed Fasal catalog + actions topic/subscription
             // so they're visible via list_topics/list_subscriptions even
             // before the first publish/action arrives.
-            for name in FASAL_CATALOG {
+            for name in relay_events_catalog() {
                 let full = format!("projects/{}/topics/{name}", config.fasal_gcp_project);
                 let _ = backend
                     .create_topic(TopicSpec {
