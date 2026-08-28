@@ -13,6 +13,7 @@
 | Deploy to Linux or Kubernetes | [Deployment](DEPLOYMENT.md) |
 | Understand the architecture | [Architecture](ARCHITECTURE.md) |
 | Integrate with relay-edge simulators | [Integration with relay-edge](#integration-with-relay-edge) |
+| SPDX headers on source | [License headers](LICENSE_HEADERS.md) |
 
 ---
 
