@@ -15,7 +15,7 @@ The production path: Pub/Sub topic publish → Relay `POST /v1/events`, plus Act
 |---------|-------|----------|
 | `FASAL_CATALOG` | 10 | `irrigation.required`, `crop.advisory`, … |
 | `EDGE_CATALOG` | 18 | `firewater.tank.low`, `edge.comms.down`, `telemetry.sample`, … |
-| `ATLAS_CATALOG` | 6 | `atlas.link.starlink.degraded`, `atlas.galleon.thermal`, … |
+| `REMOTE_EDGE_CATALOG` | 6 | `remote-edge.link.starlink.degraded`, `remote-edge.galleon.thermal`, … |
 | `FLEET_CATALOG` | 6 | `fleet.power.island`, `fleet.robot.lost`, … |
 
 Combined via `relay_events_catalog()` (40 topics at startup).
@@ -35,7 +35,7 @@ REST: `POST /v1/projects/{project}/topics/{topic}:publish` → `POST {RELAY_BASE
 ```bash
 RELAY_ACTION_TARGETS=farm-controller=https://<gateway-host>:<port>/v1/actions,\
 firewater-controller=https://<gateway-host>:<port>/v1/actions,\
-atlas-controller=https://<gateway-host>:<port>/v1/actions,\
+remote-edge-controller=https://<gateway-host>:<port>/v1/actions,\
 fleet-controller=https://<gateway-host>:<port>/v1/actions
 ```
 

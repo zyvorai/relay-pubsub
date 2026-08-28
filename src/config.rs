@@ -54,14 +54,14 @@ pub const EDGE_CATALOG: &[&str] = &[
     "telemetry.sample",
 ];
 
-/// relay-edge Atlas-class remote edge fleet simulator.
-pub const ATLAS_CATALOG: &[&str] = &[
-    "atlas.link.starlink.degraded",
-    "atlas.link.offline",
-    "atlas.galleon.thermal",
-    "atlas.vision.intrusion",
-    "atlas.iot.flood",
-    "atlas.uav.rtb",
+/// relay-edge remote-edge fleet simulator (distributed site NOC).
+pub const REMOTE_EDGE_CATALOG: &[&str] = &[
+    "remote-edge.link.starlink.degraded",
+    "remote-edge.link.offline",
+    "remote-edge.galleon.thermal",
+    "remote-edge.vision.intrusion",
+    "remote-edge.iot.flood",
+    "remote-edge.uav.rtb",
 ];
 
 /// relay-edge master fleet catalog (all edge classes).
@@ -79,7 +79,7 @@ pub fn relay_events_catalog() -> Vec<&'static str> {
     FASAL_CATALOG
         .iter()
         .chain(EDGE_CATALOG.iter())
-        .chain(ATLAS_CATALOG.iter())
+        .chain(REMOTE_EDGE_CATALOG.iter())
         .chain(FLEET_CATALOG.iter())
         .copied()
         .collect()

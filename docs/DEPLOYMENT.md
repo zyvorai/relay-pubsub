@@ -10,7 +10,7 @@ How to run the gateway on a laptop, Linux host, or in Kubernetes — alone or wi
 
 | Host | User | HTTP | gRPC | Backend | Notes |
 |---|---|---|---|---|---|
-| `212.8.248.187` | `sus` | `8081` (HTTPS) | `50061` (gRPCS) | `relay-events` | **systemd** on host. Non-default ports (nginx on `:8080`, machina on `:50051`). Self-signed cert at `/var/lib/relay-pubsub/tls/`. `RELAY_BASE_URL=https://127.0.0.1:8443`, `RELAY_TLS_INSECURE=1`. Pre-registers **40** topic names (farm + edge + atlas + fleet catalogs). JWT must match relay-edge. |
+| `212.8.248.187` | `sus` | `8081` (HTTPS) | `50061` (gRPCS) | `relay-events` | **systemd** on host. Non-default ports (nginx on `:8080`, machina on `:50051`). Self-signed cert at `/var/lib/relay-pubsub/tls/`. `RELAY_BASE_URL=https://127.0.0.1:8443`, `RELAY_TLS_INSECURE=1`. Pre-registers **40** topic names (farm + edge + remote-edge + fleet catalogs). JWT must match relay-edge. |
 | `212.8.248.187` | `sus` | `8082` (HTTPS) | — | n/a | Ops console — [Ops console](#ops-console) |
 | `212.8.248.187` | `sus` | `8080` (HTTPS, in-cluster) | `50051` (gRPCS) | `relay-events` | **k8s** pod in namespace `relay-pubsub`. Deployed via relay-edge `deploy/scripts/deploy-k8s-remote.sh`. Reaches host Relay at `https://212.8.248.187:8443`. |
 
@@ -155,7 +155,7 @@ On-cluster verify:
 bash deploy/scripts/k8s-e2e.sh
 ```
 
-Uses `scripts/smoke-relay-events.sh` + relay-edge firewater smoke + atlas/fleet publish path.
+Uses `scripts/smoke-relay-events.sh` + relay-edge firewater smoke + remote-edge/fleet publish path.
 
 **Note:** Pods reach host Relay via `https://<node-ip>:8443` (set from SSH host in deploy script). `host.k3s.internal` is not reliable on all clusters — deploy script uses the explicit host IP.
 
@@ -191,7 +191,7 @@ Event matrix (all four families): relay-edge `docs/EVENT_MATRIX.md` and `scripts
 ```bash
 RELAY_ACTION_TARGETS=farm-controller=https://127.0.0.1:8081/v1/actions,\
 firewater-controller=https://127.0.0.1:8081/v1/actions,\
-atlas-controller=https://127.0.0.1:8081/v1/actions,\
+remote-edge-controller=https://127.0.0.1:8081/v1/actions,\
 fleet-controller=https://127.0.0.1:8081/v1/actions
 ```
 

@@ -57,7 +57,7 @@ Topic name = Relay event type. **40 types** pre-registered at startup:
 |---------|--------|--------|
 | Farm | 10 | Fasal accommodation |
 | Edge / firewater | 18 | relay-edge firewater simulator |
-| Atlas | 6 | relay-edge atlas simulator |
+| Remote edge | 6 | relay-edge remote-edge simulator |
 | Fleet | 6 | relay-edge fleet simulator |
 
 Publishing to any other topic name still works — catalog is for admin UI visibility.
