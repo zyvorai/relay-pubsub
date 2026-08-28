@@ -1,3 +1,6 @@
+// Copyright 2026 Zyvor AI Labs
+// SPDX-License-Identifier: Apache-2.0
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, ArrowDownToLine, ArrowUpFromLine, CheckCircle2, CircleDot, DatabaseZap, Plus, RefreshCw, RadioTower, Send, ServerCog } from 'lucide-react'
 

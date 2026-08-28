@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Zyvor AI Labs
+# SPDX-License-Identifier: Apache-2.0
 set -euo pipefail
 # ============================================================================
 # selftest.sh — Post-deploy verification for relay-pubsub

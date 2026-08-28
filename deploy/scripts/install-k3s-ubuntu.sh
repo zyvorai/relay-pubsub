@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Zyvor AI Labs
+# SPDX-License-Identifier: Apache-2.0
 # Idempotent k3s + kubectl + helm bootstrap for Ubuntu/Debian hosts.
 # Safe to re-run.
 set -euo pipefail

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Zyvor AI Labs
+# SPDX-License-Identifier: Apache-2.0
 # Build (or pull) the relay-pubsub image and deploy it to a local k3s cluster
 # via the Helm chart, using the self-contained memory backend so the test
 # doesn't depend on a real Relay service or the relay-pubsub-secrets secret.
