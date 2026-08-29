@@ -199,43 +199,35 @@ BASE=https://127.0.0.1:8080 bash scripts/smoke-relay-events.sh
 
 ---
 
-## 11. Release / image smoke
-
-After pulling GHCR:
+## 11. Client conformance matrix (v0.4)
 
 ```bash
-docker run --rm -d --name rp -p 8080:8080 -p 50051:50051 \
-  -e RELAY_BACKEND=memory ghcr.io/zyvorai/relay-pubsub:0.3.0
-sleep 2
-BASE=https://127.0.0.1:8080 bash scripts/smoke.sh
-docker rm -f rp
+BASE=https://127.0.0.1:8080 bash scripts/client-matrix.sh
 ```
 
-CI publishes images on `main` and `v*` tags via `.github/workflows/release-image.yml`.
+Lanes: health, inventory/logs, `smoke.sh`, `conformance-smoke.sh`, Python REST, Node REST, Go REST; optional google-cloud-pubsub gRPC (skipped if SDK/cert incompatible).
+
+CI runs this matrix on every PR (memory gateway).
 
 ---
 
-## Failure cheat sheet
+## 12. Release / image smoke
 
-| Symptom | Likely cause |
-|---------|----------------|
-| `Load failed` in Safari console | Hard-refresh; use console proxy (`:8082`), not cross-origin `:8081` |
-| TLS alert / SAN mismatch | Rebuild cert after setting `PUBSUB_TLS_SAN` (include host IP) |
-| 503 on publish (`relay-events`) | Relay down, bad `RELAY_BASE_URL`, or JWT |
-| 401 from Relay | `RELAY_AUTH_TOKEN` ≠ Relay JWT secret / edge token |
-| Empty inventory | Wrong `project=` query, or nothing created yet — use Generate |
-| `/readyz` fail | Relay `/healthz` unreachable from gateway process |
-| Multi-replica lost ack state | Expected — keep single replica until Relay owns cursors |
+```bash
+docker run --rm -d --name rp -p 8080:8080 -p 50051:50051 \
+  -e RELAY_BACKEND=memory ghcr.io/zyvorai/relay-pubsub:0.4.0
+sleep 2
+BASE=https://127.0.0.1:8080 bash scripts/client-matrix.sh
+docker rm -f rp
+```
 
 ---
 
 ## Suggested acceptance checklist (release)
 
 - [ ] `cargo test --locked`
-- [ ] `docker compose up --build` + `scripts/smoke.sh`
-- [ ] `scripts/conformance-smoke.sh`
-- [ ] systemd deploy + `scripts/selftest.sh`
-- [ ] Console `#demo`, `#tests`, `#console` (Stored + Logs)
-- [ ] `admin/v1/inventory` and `admin/v1/logs` return JSON
-- [ ] With Relay: `smoke-relay-events.sh` + `fasal-catalog-smoke.sh`
-- [ ] GHCR image `ghcr.io/zyvorai/relay-pubsub:<version>` pulls and smokes
+- [ ] `scripts/client-matrix.sh` (0 fail)
+- [ ] Browser `#demo` + `#tests` (9/9)
+- [ ] systemd gateway + console
+- [ ] Helm gateway + console + PVC
+- [ ] GHCR `relay-pubsub:0.4.0` and `relay-pubsub-console:0.4.0`

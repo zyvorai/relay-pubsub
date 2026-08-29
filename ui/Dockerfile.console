@@ -1,0 +1,24 @@
+# Copyright 2026 Zyvor AI Labs
+# SPDX-License-Identifier: Apache-2.0
+# Ops console with same-origin HTTPS proxy (Node server.mjs).
+
+FROM node:22-alpine AS builder
+WORKDIR /app
+COPY package.json package-lock.json tsconfig.json index.html ./
+COPY public ./public
+COPY src ./src
+RUN npm ci && npm run build
+
+FROM node:22-alpine
+RUN apk add --no-cache openssl
+WORKDIR /app
+COPY server.mjs ./
+COPY --from=builder /app/dist ./dist
+ENV CONSOLE_DIST=/app/dist \
+    CONSOLE_PORT=8082 \
+    CONSOLE_HOST=0.0.0.0 \
+    CONSOLE_TLS_CERT=/var/lib/relay-pubsub-console/tls/cert.pem \
+    CONSOLE_TLS_KEY=/var/lib/relay-pubsub-console/tls/key.pem \
+    GATEWAY_UPSTREAM=https://relay-pubsub:8080
+EXPOSE 8082
+CMD ["node", "server.mjs"]

@@ -1,0 +1,46 @@
+{{- if .Values.console.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-console
+  labels:
+    app.kubernetes.io/name: relay-pubsub-console
+    app.kubernetes.io/part-of: zyvor-relay
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: {{ .Release.Name }}-console }
+  template:
+    metadata:
+      labels: { app: {{ .Release.Name }}-console }
+    spec:
+      containers:
+        - name: console
+          image: "{{ .Values.console.image.repository }}:{{ .Values.console.image.tag }}"
+          imagePullPolicy: {{ .Values.console.image.pullPolicy }}
+          ports:
+            - { name: https, containerPort: {{ .Values.console.port }} }
+          env:
+            - { name: CONSOLE_PORT, value: {{ .Values.console.port | quote }} }
+            - { name: CONSOLE_HOST, value: "0.0.0.0" }
+            - { name: CONSOLE_DIST, value: "/app/dist" }
+            - { name: CONSOLE_TLS_CERT, value: "/var/lib/relay-pubsub-console/tls/cert.pem" }
+            - { name: CONSOLE_TLS_KEY, value: "/var/lib/relay-pubsub-console/tls/key.pem" }
+            - { name: CONSOLE_TLS_SAN, value: {{ .Values.console.tlsSan | quote }} }
+            - name: GATEWAY_UPSTREAM
+              value: {{ printf "https://%s:%v" .Release.Name .Values.service.httpPort | quote }}
+          volumeMounts:
+            - { name: tls, mountPath: /var/lib/relay-pubsub-console/tls }
+          readinessProbe:
+            httpGet: { path: /healthz, port: https, scheme: HTTPS }
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /, port: https, scheme: HTTPS }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources: {{- toYaml .Values.console.resources | nindent 12 }}
+      volumes:
+        - name: tls
+          emptyDir: {}
+{{- end }}

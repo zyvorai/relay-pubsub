@@ -21,3 +21,33 @@ jobs:
         with: { node-version: 22 }
       - run: npm install
       - run: npm run build
+  matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.22" }
+      - run: cargo build --release --locked
+      - name: Start memory gateway
+        run: |
+          mkdir -p /tmp/rp-tls /tmp/rp-data
+          PUBSUB_HTTP_ADDR=0.0.0.0:8080 \
+          PUBSUB_GRPC_ADDR=0.0.0.0:50051 \
+          PUBSUB_TLS_CERT=/tmp/rp-tls/cert.pem \
+          PUBSUB_TLS_KEY=/tmp/rp-tls/key.pem \
+          PUBSUB_TLS_SAN=localhost,127.0.0.1 \
+          PUBSUB_DATA_DIR=/tmp/rp-data \
+          PUBSUB_PERSIST=1 \
+          RELAY_BACKEND=memory \
+          ./target/release/relay-pubsub &
+          echo $! > /tmp/rp.pid
+          for i in $(seq 1 30); do
+            curl -sk https://127.0.0.1:8080/healthz | grep -q ok && break
+            sleep 1
+          done
+      - run: BASE=https://127.0.0.1:8080 bash scripts/client-matrix.sh
+      - if: always()
+        run: kill "$(cat /tmp/rp.pid)" 2>/dev/null || true

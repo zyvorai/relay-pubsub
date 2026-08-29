@@ -67,6 +67,8 @@ spec:
         - name: data
           {{- if .Values.persist.persistentVolumeClaim }}
           persistentVolumeClaim: { claimName: {{ .Values.persist.persistentVolumeClaim | quote }} }
+          {{- else if .Values.persist.createPvc }}
+          persistentVolumeClaim: { claimName: {{ printf "%s-data" .Release.Name | quote }} }
           {{- else }}
           emptyDir: {}
           {{- end }}

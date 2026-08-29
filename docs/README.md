@@ -1,6 +1,6 @@
 # relay-pubsub documentation
 
-**Google Pub/Sub APIs in. Relay events out.** · **v0.3.0**
+**Google Pub/Sub APIs in. Relay events out.** · **v0.4.0**
 
 ---
 
@@ -115,7 +115,11 @@ bash deploy/scripts/ci-k3s-e2e.sh        # verify k3s deploy
 bash scripts/selftest.sh                 # host binary + unit + smoke
 ```
 
-Image: `ghcr.io/zyvorai/relay-pubsub:0.3.0`
+Image: `ghcr.io/zyvorai/relay-pubsub:0.4.0` · Console: `ghcr.io/zyvorai/relay-pubsub-console:0.4.0`
+
+```bash
+bash scripts/client-matrix.sh            # REST + Python/Node/Go lanes
+```
 
 ---
 

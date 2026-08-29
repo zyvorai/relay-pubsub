@@ -11,13 +11,15 @@ import https from 'node:https'
 import http from 'node:http'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { execFileSync } from 'node:child_process'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DIST = process.env.CONSOLE_DIST || path.join(__dirname, 'dist')
 const PORT = Number(process.env.CONSOLE_PORT || 8082)
 const HOST = process.env.CONSOLE_HOST || '0.0.0.0'
-const CERT = process.env.CONSOLE_TLS_CERT
-const KEY = process.env.CONSOLE_TLS_KEY
+const CERT = process.env.CONSOLE_TLS_CERT || '/var/lib/relay-pubsub-console/tls/cert.pem'
+const KEY = process.env.CONSOLE_TLS_KEY || '/var/lib/relay-pubsub-console/tls/key.pem'
+const SAN = process.env.CONSOLE_TLS_SAN || 'localhost,relay-pubsub-console'
 const UPSTREAM = (process.env.GATEWAY_UPSTREAM || 'https://127.0.0.1:8081').replace(/\/$/, '')
 
 const PROXY_PREFIXES = ['/v1', '/admin', '/healthz', '/readyz', '/metrics']
@@ -42,6 +44,58 @@ function contentType(filePath) {
   )
 }
 
+function ensureTls() {
+  if (fs.existsSync(CERT) && fs.existsSync(KEY)) return
+  const dir = path.dirname(CERT)
+  fs.mkdirSync(dir, { recursive: true })
+  const names = SAN.split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const alt = names
+    .map((n, i) => (/^\d+\.\d+\.\d+\.\d+$/.test(n) ? `IP.${i + 1}=${n}` : `DNS.${i + 1}=${n}`))
+    .join('\n')
+  const conf = path.join(dir, 'openssl.cnf')
+  fs.writeFileSync(
+    conf,
+    `[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+distinguished_name = dn
+x509_extensions = v3
+[dn]
+CN = ${names[0] || 'localhost'}
+[v3]
+subjectAltName = @alt
+basicConstraints = CA:FALSE
+[alt]
+${alt}
+`,
+  )
+  execFileSync(
+    'openssl',
+    [
+      'req',
+      '-x509',
+      '-newkey',
+      'rsa:2048',
+      '-nodes',
+      '-keyout',
+      KEY,
+      '-out',
+      CERT,
+      '-days',
+      '825',
+      '-config',
+      conf,
+      '-extensions',
+      'v3',
+    ],
+    { stdio: 'inherit' },
+  )
+  console.log(`generated self-signed TLS at ${CERT}`)
+}
+
 function serveStatic(req, res) {
   let urlPath = decodeURIComponent((req.url || '/').split('?')[0])
   if (urlPath === '/') urlPath = '/index.html'
@@ -53,7 +107,6 @@ function serveStatic(req, res) {
   }
   fs.readFile(filePath, (err, data) => {
     if (err) {
-      // SPA fallback
       fs.readFile(path.join(DIST, 'index.html'), (err2, html) => {
         if (err2) {
           res.writeHead(404)
@@ -88,7 +141,6 @@ function proxy(req, res) {
     },
     (upRes) => {
       const outHeaders = { ...upRes.headers }
-      // Browser talks to this origin only — strip upstream CORS noise.
       delete outHeaders['access-control-allow-origin']
       delete outHeaders['access-control-allow-methods']
       delete outHeaders['access-control-allow-headers']
@@ -112,10 +164,7 @@ function handler(req, res) {
   serveStatic(req, res)
 }
 
-if (!CERT || !KEY) {
-  console.error('CONSOLE_TLS_CERT and CONSOLE_TLS_KEY are required')
-  process.exit(1)
-}
+ensureTls()
 
 const server = https.createServer(
   {

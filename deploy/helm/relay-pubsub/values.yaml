@@ -1,7 +1,7 @@
 replicaCount: 1
 image:
   repository: ghcr.io/zyvorai/relay-pubsub
-  tag: "0.3.0"
+  tag: "0.4.0"
   pullPolicy: IfNotPresent
 
 tls:
@@ -12,7 +12,11 @@ tls:
 persist:
   enabled: "1"
   dataDir: /var/lib/relay-pubsub/data
-  # Set to a PVC name for durable action-queue across pod reschedule.
+  # Auto-create a ReadWriteOnce PVC (single-replica restart durability).
+  createPvc: true
+  size: 2Gi
+  storageClass: ""
+  # Or point at an existing claim (takes precedence over createPvc).
   persistentVolumeClaim: ""
 
 push:
@@ -37,6 +41,21 @@ service:
   type: ClusterIP
   grpcPort: 50051
   httpPort: 8080
+
+console:
+  enabled: true
+  image:
+    repository: ghcr.io/zyvorai/relay-pubsub-console
+    tag: "0.4.0"
+    pullPolicy: IfNotPresent
+  port: 8082
+  tlsSan: "localhost,relay-pubsub-console"
+  service:
+    type: ClusterIP
+    port: 8082
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: "1", memory: 256Mi }
 
 resources:
   requests: { cpu: 100m, memory: 128Mi }

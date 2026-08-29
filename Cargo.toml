@@ -1,6 +1,6 @@
 [package]
 name = "relay-pubsub"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 description = "Google Cloud Pub/Sub compatibility gateway for Zyvor Relay"
 license = "Apache-2.0"

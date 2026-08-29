@@ -16,7 +16,9 @@ Speak familiar Pub/Sub gRPC and REST. The gateway handles translation, TLS, metr
 [![GHCR](https://img.shields.io/badge/GHCR-relay--pubsub-black.svg)](https://github.com/zyvorai/relay-pubsub/pkgs/container/relay-pubsub)
 [![Release](https://img.shields.io/github/v/release/zyvorai/relay-pubsub.svg)](https://github.com/zyvorai/relay-pubsub/releases)
 
-**Current release: [v0.3.0](https://github.com/zyvorai/relay-pubsub/releases/tag/v0.3.0)** · Image: `ghcr.io/zyvorai/relay-pubsub:0.3.0`
+**Images:** `ghcr.io/zyvorai/relay-pubsub:0.4.0` · `ghcr.io/zyvorai/relay-pubsub-console:0.4.0`
+
+**Current release: [v0.4.0](https://github.com/zyvorai/relay-pubsub/releases/tag/v0.4.0)** · Image: `ghcr.io/zyvorai/relay-pubsub:0.4.0`
 
 ---
 
@@ -42,9 +44,9 @@ bash scripts/smoke.sh          # curl -k, self-signed TLS
 Or pull the release image:
 
 ```bash
-docker pull ghcr.io/zyvorai/relay-pubsub:0.3.0
+docker pull ghcr.io/zyvorai/relay-pubsub:0.4.0
 docker run --rm -p 8080:8080 -p 50051:50051 \
-  -e RELAY_BACKEND=memory ghcr.io/zyvorai/relay-pubsub:0.3.0
+  -e RELAY_BACKEND=memory ghcr.io/zyvorai/relay-pubsub:0.4.0
 ```
 
 **Install all targets** → [docs/INSTALL.md](docs/INSTALL.md)  
@@ -126,7 +128,7 @@ See [Getting started](docs/GETTING_STARTED.md) for the `PUBSUB_EMULATOR_HOST` ca
 | **Local k3s** | `bash deploy/scripts/deploy-k3s.sh` |
 | **Helm** | `helm upgrade --install … deploy/helm/relay-pubsub` |
 | **k8s + relay-edge** | From relay-edge: `./deploy/scripts/deploy-k8s-remote.sh <HOST>` |
-| **GHCR** | `docker pull ghcr.io/zyvorai/relay-pubsub:0.3.0` |
+| **GHCR** | `docker pull ghcr.io/zyvorai/relay-pubsub:0.4.0` |
 
 Verify:
 

@@ -65,5 +65,6 @@ mTLS / workload-identity passthrough can sit in front of the gateway; the gatewa
 - ~~v0.1: core Publisher/Subscriber data path, REST, StreamingPull, time replay, DLQ~~
 - ~~v0.2: official proto expansion, push dispatcher, snapshots, pagination, update APIs~~
 - ~~v0.3: schema service, IAM compatibility subset, exactly-once + ordering + retry backoff, push dispatcher, admin inventory/logs, product console~~
-- v0.4: multi-language Google client conformance matrix and migration tooling
+- ~~v0.4: client conformance matrix (REST + Python/Node/Go), Helm console + PVC~~
+- v0.5: multi-replica durable cursors in Relay core; broader official SDK TLS matrix
 - Ongoing: durable ACK/cursors in Relay core (gateway persists local queue to disk today via `PUBSUB_DATA_DIR`)
