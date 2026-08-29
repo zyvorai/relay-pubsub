@@ -555,7 +555,27 @@ export function Console() {
             <div>
               <h3 className="stored-heading">Topics</h3>
               {inventory.topics.length === 0 ? (
-                <div className="empty">Nothing stored. Configure a topic or generate catalogs.</div>
+                <div className="empty">
+                  Nothing stored. Configure a topic or{' '}
+                  <a href="#generate">generate catalogs</a>.
+                  <div style={{ marginTop: 10 }}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      style={{ padding: 0 }}
+                      onClick={() => {
+                        try {
+                          localStorage.removeItem('relay_pubsub_onboarded')
+                        } catch {
+                          /* ignore */
+                        }
+                        window.dispatchEvent(new Event('relay-pubsub-onboard-open'))
+                      }}
+                    >
+                      Show setup guide
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <div className="stored-list">
                   {inventory.topics.map((t) => (
@@ -635,7 +655,22 @@ export function Console() {
       {pane === 'configure' && (
         <div className="pane-body">
           <p className="pane-lead">
-            Create topics and subscriptions, wire push endpoints, or remove resources.
+            Create topics and subscriptions, wire push endpoints, or remove resources.{' '}
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ padding: 0, verticalAlign: 'baseline' }}
+              onClick={() => {
+                try {
+                  localStorage.removeItem('relay_pubsub_onboarded')
+                } catch {
+                  /* ignore */
+                }
+                window.dispatchEvent(new Event('relay-pubsub-onboard-open'))
+              }}
+            >
+              Show setup guide
+            </button>
           </p>
           <div className="console-grid">
             <div>

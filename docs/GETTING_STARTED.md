@@ -120,6 +120,14 @@ curl -k -X POST https://127.0.0.1:8080/v1/projects/fasal-onprem/topics/irrigatio
 
 ---
 
+## First console open
+
+After install, open `https://<host>:8082/`. A **Get started** panel walks Generate → Demo → Stored (dismissible; reopen from Console empty state). Relay JWT is configured on the **gateway host** (`RELAY_AUTH_TOKEN`), not in the browser.
+
+Peers may be remote — the console proxies to `GATEWAY_UPSTREAM` set at deploy time.
+
+---
+
 ## Next steps
 
 | Goal | Doc |

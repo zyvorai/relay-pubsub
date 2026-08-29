@@ -6,11 +6,13 @@ import { LiveDemo } from './demo/LiveDemo'
 import { TestSuite } from './demo/TestSuite'
 import { Generate } from './Generate'
 import { HeroFlow } from './HeroFlow'
+import { Onboarding } from './Onboarding'
 import { ZyvorLogo } from './ZyvorLogo'
 
 export default function App() {
   return (
     <>
+      <Onboarding />
       <header className="nav-bar">
         <div className="nav-brand">
           <ZyvorLogo size={28} />

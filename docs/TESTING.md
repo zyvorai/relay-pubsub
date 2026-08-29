@@ -137,15 +137,15 @@ curl -k -X POST "$BASE/admin/v1/push-config" \
 
 With console on `:8082` (proxied to gateway):
 
-1. Open `https://<host>:8082/` (accept self-signed once).
+1. Open `https://<host>:8082/` (accept self-signed once). First visit shows a **Get started** checklist (Skip/Done dismisses it).
 2. **Generate** — seed farm/edge/demo/test catalogs.
 3. **Demo** — one-click publish → pull → ack.
 4. **Tests** — in-page health / smoke / conformance runners.
 5. **Console**
    - **Incoming** — publish into a topic
    - **Outgoing** — pull / live / push endpoint / ack
-   - **Stored** — inventory peek (does not consume)
-   - **Configure** — create/delete resources
+   - **Stored** — inventory peek (does not consume); empty state can reopen the setup guide
+   - **Configure** — create/delete resources; **Show setup guide**
    - **Logs** — live gateway log tail (filter by level/text)
 
 ```bash
