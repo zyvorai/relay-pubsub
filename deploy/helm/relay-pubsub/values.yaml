@@ -1,13 +1,22 @@
 replicaCount: 1
 image:
   repository: ghcr.io/zyvorai/relay-pubsub
-  tag: latest
+  tag: "0.3.0"
   pullPolicy: IfNotPresent
 
 tls:
   certPath: /var/lib/relay-pubsub/tls/cert.pem
   keyPath: /var/lib/relay-pubsub/tls/key.pem
   san: "localhost,relay-pubsub,relay-pubsub.relay-pubsub.svc,relay-pubsub.relay-pubsub.svc.cluster.local"
+
+persist:
+  enabled: "1"
+  dataDir: /var/lib/relay-pubsub/data
+  # Set to a PVC name for durable action-queue across pod reschedule.
+  persistentVolumeClaim: ""
+
+push:
+  intervalSeconds: "2"
 
 relay:
   backend: relay-events

@@ -26,6 +26,9 @@ spec:
             - { name: PUBSUB_TLS_CERT, value: {{ .Values.tls.certPath | quote }} }
             - { name: PUBSUB_TLS_KEY, value: {{ .Values.tls.keyPath | quote }} }
             - { name: PUBSUB_TLS_SAN, value: {{ .Values.tls.san | quote }} }
+            - { name: PUBSUB_DATA_DIR, value: {{ .Values.persist.dataDir | quote }} }
+            - { name: PUBSUB_PERSIST, value: {{ .Values.persist.enabled | quote }} }
+            - { name: PUBSUB_PUSH_INTERVAL_SECONDS, value: {{ .Values.push.intervalSeconds | quote }} }
             - { name: RELAY_BACKEND, value: {{ .Values.relay.backend | quote }} }
             - { name: RELAY_BASE_URL, value: {{ .Values.relay.baseUrl | quote }} }
             - { name: RELAY_TLS_INSECURE, value: {{ .Values.relay.tlsInsecure | quote }} }
@@ -48,6 +51,7 @@ spec:
             {{- end }}
           volumeMounts:
             - { name: tls, mountPath: /var/lib/relay-pubsub/tls }
+            - { name: data, mountPath: {{ .Values.persist.dataDir | quote }} }
           readinessProbe:
             httpGet: { path: /readyz, port: http, scheme: HTTPS }
             initialDelaySeconds: 2
@@ -60,3 +64,9 @@ spec:
       volumes:
         - name: tls
           emptyDir: {}
+        - name: data
+          {{- if .Values.persist.persistentVolumeClaim }}
+          persistentVolumeClaim: { claimName: {{ .Values.persist.persistentVolumeClaim | quote }} }
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

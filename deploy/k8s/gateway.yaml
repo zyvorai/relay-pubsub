@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: gateway
-          image: ghcr.io/zyvorai/relay-pubsub:latest
+          image: ghcr.io/zyvorai/relay-pubsub:0.3.0
           ports:
             - { name: grpc, containerPort: 50051 }
             - { name: http, containerPort: 8080 }

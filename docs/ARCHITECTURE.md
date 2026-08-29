@@ -30,6 +30,8 @@ Compatibility gateways should be stateless. Run 2+ replicas behind an HTTP/2-cap
 
 Each gateway process terminates its own TLS (gRPCS/HTTPS). In Kubernetes, mount a shared TLS secret or accept per-pod self-signed certs (current Helm default uses `emptyDir` — fine for single-replica lab stacks).
 
+Local topic/subscription/action-queue state can be persisted to `PUBSUB_DATA_DIR/state.json` (`PUBSUB_PERSIST=1`, default on). That survives process restart on a single replica; multi-replica HA still requires sticky routing or durable state in Relay core.
+
 **relay-edge** follows the same pattern: optional `EDGE_TLS=1` with self-signed cert in `internal/tlsutil`, deployed alongside relay-pubsub via relay-edge `deploy/scripts/deploy-k8s-remote.sh`.
 
 ## Integration stack
@@ -48,17 +50,20 @@ See relay-edge [Event matrix](https://github.com/zyvorai/relay-edge/blob/main/do
 
 ## Tenant model
 
-External Pub/Sub resource names contain `projects/<project>`, but that string is not authorization. Production flow should be:
+External Pub/Sub resource names contain `projects/<project>`, but that string is not authorization. Production flow:
 
-1. authenticate caller (OIDC, mTLS, workload identity or trusted edge proxy);
-2. map identity/credential to a Relay tenant;
-3. authorize resource operation against that tenant;
+1. authenticate caller — static bearer (`RELAY_PUBSUB_AUTH_TOKEN`) and/or OIDC JWT (`PUBSUB_OIDC_JWKS_URL` + audience/issuer);
+2. map identity to allowed projects (`PUBSUB_ALLOWED_PROJECTS`, `PUBSUB_IDENTITY_PROJECT_MAP`);
+3. authorize each resource operation against that allowlist;
 4. map the external Google-style project name to the internal Relay namespace;
-5. call Relay using a scoped service identity.
+5. call Relay using a scoped service identity (`RELAY_AUTH_TOKEN`).
+
+mTLS / workload-identity passthrough can sit in front of the gateway; the gateway itself validates Bearer credentials today.
 
 ## Compatibility roadmap
 
-- v0.1: core Publisher/Subscriber data path, REST, StreamingPull, time replay, DLQ
-- v0.2: official full proto set, push dispatcher, snapshots, pagination, update APIs
-- v0.3: schema service, IAM compatibility subset, exact-once conformance
+- ~~v0.1: core Publisher/Subscriber data path, REST, StreamingPull, time replay, DLQ~~
+- ~~v0.2: official proto expansion, push dispatcher, snapshots, pagination, update APIs~~
+- ~~v0.3: schema service, IAM compatibility subset, exactly-once + ordering + retry backoff, push dispatcher, admin inventory/logs, product console~~
 - v0.4: multi-language Google client conformance matrix and migration tooling
+- Ongoing: durable ACK/cursors in Relay core (gateway persists local queue to disk today via `PUBSUB_DATA_DIR`)

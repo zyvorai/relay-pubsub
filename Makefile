@@ -1,4 +1,4 @@
-.PHONY: run test fmt check ui compose smoke selftest \
+.PHONY: run test fmt check ui compose smoke conformance selftest \
 	deploy-remote deploy-remote-quick deploy-remote-preflight deploy-remote-verify deploy-remote-uninstall deploy-remote-fleet
 
 run:
@@ -21,6 +21,9 @@ compose:
 
 smoke:
 	bash scripts/smoke.sh
+
+conformance:
+	bash scripts/conformance-smoke.sh
 
 selftest:
 	bash scripts/selftest.sh

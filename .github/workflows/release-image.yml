@@ -10,6 +10,7 @@ on:
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'Dockerfile'
+      - 'deploy/**'
       - '.github/workflows/release-image.yml'
   workflow_dispatch:
 

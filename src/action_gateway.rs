@@ -186,6 +186,7 @@ mod tests {
                 dead_letter: None,
                 retry: None,
                 push_endpoint: None,
+                push_attributes: HashMap::new(),
             })
             .await
             .unwrap();

@@ -1,17 +1,25 @@
 // Copyright 2026 Zyvor AI Labs
 // SPDX-License-Identifier: Apache-2.0
 
+#![allow(clippy::result_large_err)]
+
 use clap::Parser;
 use relay_pubsub::{
     action_gateway::{self, ActionGatewayState},
+    auth::{parse_identity_project_map, AuthConfig, Authenticator},
     backend::RelayBackend,
     config::{relay_events_catalog, BackendKind, Config},
-    google::pubsub::v1::{publisher_server::PublisherServer, subscriber_server::SubscriberServer},
+    google::pubsub::v1::{
+        publisher_server::PublisherServer, schema_service_server::SchemaServiceServer,
+        subscriber_server::SubscriberServer,
+    },
     grpc::GatewayService,
     http_backend::HttpRelayBackend,
+    log_buffer::{BufferLayer, LogBuffer},
     memory::MemoryBackend,
     metrics::Metrics,
     model::{SubscriptionSpec, TopicSpec},
+    push,
     relay_events_backend::RelayEventsBackend,
     rest::{router, HttpState},
     tls::load_or_generate_self_signed,
@@ -20,29 +28,26 @@ use std::collections::HashMap;
 use std::{sync::Arc, time::Duration};
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 use tracing::info;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
+    let log_buffer = LogBuffer::new(2000);
+    tracing_subscriber::registry()
+        .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| "info,tower_http=info".into()),
         )
+        .with(tracing_subscriber::fmt::layer())
+        .with(BufferLayer::new(log_buffer.clone()))
         .init();
 
-    // Both the HTTP (axum-server/rustls) and gRPC (tonic/rustls) TLS
-    // listeners need a process-wide default crypto provider; without this,
-    // rustls can't pick one automatically when multiple provider features
-    // are reachable transitively.
     rustls::crypto::ring::default_provider()
         .install_default()
         .expect("install rustls default crypto provider");
 
     let mut config = Config::parse();
-    // An EnvironmentFile/.env with `RELAY_AUTH_TOKEN=` (present but empty) is
-    // indistinguishable to clap's env parsing from a real empty token, which
-    // would otherwise require an unsatisfiable empty bearer header. Treat an
-    // empty value the same as unset.
     config.relay_auth_token = config.relay_auth_token.filter(|s| !s.is_empty());
     config.gateway_auth_token = config.gateway_auth_token.filter(|s| !s.is_empty());
     let metrics = Metrics::new();
@@ -55,11 +60,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config.fasal_gcp_project, config.fasal_actions_subscription
     );
     let is_relay_events = matches!(config.backend, BackendKind::RelayEvents);
+    let persist_path = config.data_dir.join("state.json");
 
     let backend: Arc<dyn RelayBackend> = match config.backend {
         BackendKind::Memory => {
             info!("using in-memory Relay backend (demo/test mode)");
-            Arc::new(MemoryBackend::new())
+            if config.persist {
+                info!(path = %persist_path.display(), "persistence enabled");
+                Arc::new(MemoryBackend::with_persistence(&persist_path)?)
+            } else {
+                Arc::new(MemoryBackend::new())
+            }
         }
         BackendKind::Http => {
             info!(base_url = %config.relay_base_url, "using Zyvor Relay HTTP backend");
@@ -71,15 +82,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         BackendKind::RelayEvents => {
             info!(base_url = %config.relay_base_url, %actions_topic, "using Zyvor Relay events backend (real /v1/events + Action Gateway)");
-            let backend = RelayEventsBackend::new(
-                config.relay_base_url.clone(),
-                config.relay_auth_token.clone(),
-                Duration::from_secs(config.relay_http_timeout_seconds),
-                actions_topic.clone(),
-            )?;
-            // Pre-register the fixed Fasal catalog + actions topic/subscription
-            // so they're visible via list_topics/list_subscriptions even
-            // before the first publish/action arrives.
+            let backend = if config.persist {
+                info!(path = %persist_path.display(), "persistence enabled for actions queue");
+                RelayEventsBackend::with_persistence(
+                    &persist_path,
+                    config.relay_base_url.clone(),
+                    config.relay_auth_token.clone(),
+                    Duration::from_secs(config.relay_http_timeout_seconds),
+                    actions_topic.clone(),
+                )?
+            } else {
+                RelayEventsBackend::new(
+                    config.relay_base_url.clone(),
+                    config.relay_auth_token.clone(),
+                    Duration::from_secs(config.relay_http_timeout_seconds),
+                    actions_topic.clone(),
+                )?
+            };
             for name in relay_events_catalog() {
                 let full = format!("projects/{}/topics/{name}", config.fasal_gcp_project);
                 let _ = backend
@@ -90,14 +109,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     })
                     .await;
             }
-            backend
+            let _ = backend
                 .create_topic(TopicSpec {
                     name: actions_topic.clone(),
                     labels: HashMap::new(),
                     kms_key_name: String::new(),
                 })
-                .await?;
-            backend
+                .await;
+            let _ = backend
                 .create_subscription(SubscriptionSpec {
                     name: actions_subscription.clone(),
                     topic: actions_topic.clone(),
@@ -108,33 +127,54 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     dead_letter: None,
                     retry: None,
                     push_endpoint: None,
+                    push_attributes: HashMap::new(),
                 })
-                .await?;
+                .await;
             Arc::new(backend)
         }
     };
 
-    let gateway = GatewayService::new(
-        backend.clone(),
+    let auth_config = AuthConfig::from_env(
         config.gateway_auth_token.clone(),
-        metrics.clone(),
+        config.allowed_projects.clone(),
+        parse_identity_project_map(&config.identity_project_map),
     );
+    let authenticator = if auth_config.auth_required() || !auth_config.allowed_projects.is_empty() {
+        Some(Authenticator::new(auth_config))
+    } else {
+        None
+    };
+
+    let gateway = GatewayService::new(backend.clone(), authenticator.clone(), metrics.clone());
     let http_state = HttpState {
         backend: backend.clone(),
-        auth_token: config.gateway_auth_token.clone(),
+        authenticator,
         metrics: metrics.clone(),
+        check_relay_ready: is_relay_events,
+        relay_base_url: config.relay_base_url.clone(),
+        relay_token: config.relay_auth_token.clone(),
+        logs: log_buffer,
     };
     let mut http_router = router(http_state);
     if is_relay_events {
         http_router = http_router.merge(action_gateway::router(ActionGatewayState::new(
-            backend,
+            backend.clone(),
             actions_topic,
         )));
     }
 
-    // Both listeners are TLS-only — this gateway terminates HTTPS/gRPCS
-    // itself rather than sitting behind a reverse proxy. A self-signed
-    // cert/key is generated on first run and reused thereafter.
+    if config.push_interval_seconds > 0 {
+        push::spawn(
+            backend.clone(),
+            metrics.clone(),
+            Duration::from_secs(config.push_interval_seconds),
+        );
+        info!(
+            interval_s = config.push_interval_seconds,
+            "push dispatcher started"
+        );
+    }
+
     let tls =
         load_or_generate_self_signed(&config.tls_cert, &config.tls_key, config.tls_san.clone())?;
 
@@ -146,7 +186,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Server::builder()
             .tls_config(ServerTlsConfig::new().identity(grpc_identity))?
             .add_service(PublisherServer::new(grpc_gateway.clone()))
-            .add_service(SubscriberServer::new(grpc_gateway))
+            .add_service(SubscriberServer::new(grpc_gateway.clone()))
+            .add_service(SchemaServiceServer::new(grpc_gateway))
             .serve(grpc_addr)
             .await
     });

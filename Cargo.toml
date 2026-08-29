@@ -1,10 +1,13 @@
 [package]
 name = "relay-pubsub"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "Google Cloud Pub/Sub compatibility gateway for Zyvor Relay"
 license = "Apache-2.0"
 repository = "https://github.com/zyvorai/relay-pubsub"
+
+# Keep this crate standalone when nested under a parent Cargo.toml (e.g. lab ~/.deployments).
+[workspace]
 
 [dependencies]
 async-trait = "0.1"
@@ -14,7 +17,7 @@ base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4", features = ["derive", "env"] }
 futures = "0.3"
-http = "1"
+jsonwebtoken = { version = "9", default-features = false, features = ["use_pem"] }
 prometheus = "0.13"
 prost = "0.13"
 prost-types = "0.13"

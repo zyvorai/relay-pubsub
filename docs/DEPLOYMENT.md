@@ -13,7 +13,7 @@ Track your own instances in ops notes — do not commit live hostnames or IPs to
 | Host | User | HTTP | gRPC | Backend | Notes |
 |---|---|---|---|---|---|
 | `<host>` | `<user>` | `8081` (HTTPS) | `50061` (gRPCS) | `relay-events` | **systemd** on host. Self-signed cert at `/var/lib/relay-pubsub/tls/`. `RELAY_BASE_URL=https://127.0.0.1:8443`, `RELAY_TLS_INSECURE=1`. Pre-registers **40** topic names (farm + edge + remote-edge + fleet catalogs). JWT must match relay-edge. |
-| `<host>` | `<user>` | `8082` (HTTPS) | — | n/a | Ops console — [Ops console](#ops-console) |
+| `<host>` | `<user>` | `8082` (HTTPS) | — | n/a | Product console + demo/tests — [Ops console + product demo](#ops-console--product-demo) |
 | `<host>` | `<user>` | `8080` (HTTPS, in-cluster) | `50051` (gRPCS) | `relay-events` | **k8s** pod in namespace `relay-pubsub`. Deployed via relay-edge `deploy/scripts/deploy-k8s-remote.sh`. Reaches host Relay at `https://<host>:8443`. |
 
 Manage **systemd** gateway:
@@ -34,14 +34,39 @@ ssh <user>@<host> bash ~/.deployments/k8s-edge-stack/relay-edge/deploy/scripts/k
 
 ---
 
-## Ops console
+## Ops console + product demo
 
-`ui/` is deployed independently via `scripts/deploy-console-remote.sh` — own systemd unit, port `8082`, self-signed HTTPS. See existing section below (unchanged).
+`ui/` is a Zyvor-branded product site (hero, Generate catalogs, live demo, in-browser tests, ops console) deployed via `scripts/deploy-console-remote.sh` — own systemd unit, port **8082**, self-signed HTTPS.
+
+Same-origin fetch: Node `ui/server.mjs` proxies `/v1`, `/admin`, `/healthz`, `/readyz`, `/metrics` to the gateway so the browser only trusts one cert.
 
 ```bash
-bash scripts/deploy-console-remote.sh <host> <user>
-curl -k https://<host>:8082/
+# Optional 3rd arg = SSH password (sshpass).
+bash scripts/deploy-console-remote.sh <host> <user> [password] \
+  --gateway https://127.0.0.1:8081 \
+  --project projects/demo
+
+curl -k https://<host>:8082/          # product site
+curl -k https://<host>:8082/healthz   # proxied gateway health
+# https://<host>:8082/#generate       # seed catalogs
+# https://<host>:8082/#demo           # live publish → pull → ack
+# https://<host>:8082/#tests          # browser smoke + conformance
+# https://<host>:8082/#console        # Incoming / Outgoing / Stored / Logs
 ```
+
+Console panes:
+
+| Pane | Purpose |
+|------|---------|
+| Incoming | Publish into topics |
+| Outgoing | Pull / live / push endpoint / ack |
+| Stored | Inventory (counts, backlog, peek without consuming) |
+| Configure | Create / delete topics & subscriptions |
+| Logs | Live gateway process log tail |
+
+Include the host IP in gateway `PUBSUB_TLS_SAN` (and regenerate certs) so server-side clients and the console proxy can reach the gateway by name/IP.
+
+Full install + test docs: [INSTALL.md](INSTALL.md) · [TESTING.md](TESTING.md).
 
 ---
 
@@ -50,6 +75,8 @@ curl -k https://<host>:8082/
 1. [Bare Linux host via systemd](#1-bare-linux-host-via-systemd) — `scripts/deploy-remote.sh`
 2. [Kubernetes pods](#2-kubernetes-pods) — Helm chart, k3s, or **relay-edge stack deploy**
 3. [relay-pubsub + relay-edge stack](#relay-pubsub--relay-edge-stack) — full integration path
+
+Also: [Installation](INSTALL.md) (GHCR pull, Docker run) and [Testing](TESTING.md) (acceptance checklist).
 
 Functional proof for all paths: real publish (and pull for memory backend) via `scripts/smoke.sh` or `scripts/smoke-relay-events.sh` — not `/healthz` alone.
 
@@ -107,11 +134,16 @@ bash scripts/deploy-remote.sh <host> <user> --uninstall [--purge]
 ### Verify (systemd)
 
 ```bash
+BASE=https://<host>:8081 bash scripts/smoke.sh
+BASE=https://<host>:8081 bash scripts/conformance-smoke.sh
 BASE=https://<host>:8081 bash scripts/smoke-relay-events.sh
-BASE=https://<host>:8081 bash scripts/fasal-catalog-smoke.sh
 BASE=https://<host>:8443 GATEWAY=https://<host>:8081 \
   bash scripts/fasal-catalog-smoke.sh
+curl -k https://<host>:8081/admin/v1/inventory?project=projects/demo
+curl -k https://<host>:8081/admin/v1/logs?limit=20
 ```
+
+See [Testing](TESTING.md) for the full acceptance checklist.
 
 ---
 
@@ -211,6 +243,8 @@ Relay needs `RELAY_TLS_INSECURE=1` (or trust gateway cert) when action URL is HT
 
 **TLS cert errors:** Use `curl -k`; ensure `PUBSUB_TLS_SAN` includes all names/IPs clients validate against before first cert generation.
 
-## Known limitation: `/healthz`/`/readyz`
+## Known limitation: multi-replica action queue
 
-Liveness only — do not prove Relay backend connectivity. Always run `smoke.sh` or `smoke-relay-events.sh` after deploy.
+`/healthz` is liveness-only. `/readyz` probes Relay when `RELAY_BACKEND=relay-events`.
+
+Local subscribe/ACK/action-queue state persists to disk (`PUBSUB_DATA_DIR`) but is still **per-replica**. Keep `replicaCount: 1` (or sticky sessions) until Relay owns durable cursors.

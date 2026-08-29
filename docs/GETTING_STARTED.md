@@ -124,6 +124,8 @@ curl -k -X POST https://127.0.0.1:8080/v1/projects/fasal-onprem/topics/irrigatio
 
 | Goal | Doc |
 |------|-----|
+| Install (systemd / k8s / GHCR) | [Installation](INSTALL.md) |
+| Verify with smokes + console | [Testing](TESTING.md) |
 | Deploy to production host | [Deployment](DEPLOYMENT.md) |
 | Kubernetes + relay-edge stack | [Deployment § k8s stack](DEPLOYMENT.md#relay-pubsub--relay-edge-stack) |
 | Action Gateway wiring | [Relay events backend](RELAY_EVENTS_BACKEND.md) |

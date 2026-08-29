@@ -4,25 +4,50 @@ package google.pubsub.v1;
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
+import "google/protobuf/field_mask.proto";
 
 service Publisher {
   rpc CreateTopic(Topic) returns (Topic);
+  rpc UpdateTopic(UpdateTopicRequest) returns (Topic);
   rpc GetTopic(GetTopicRequest) returns (Topic);
   rpc ListTopics(ListTopicsRequest) returns (ListTopicsResponse);
+  rpc ListTopicSubscriptions(ListTopicSubscriptionsRequest) returns (ListTopicSubscriptionsResponse);
   rpc DeleteTopic(DeleteTopicRequest) returns (Empty);
   rpc Publish(PublishRequest) returns (PublishResponse);
+  rpc GetIamPolicy(GetIamPolicyRequest) returns (Policy);
+  rpc SetIamPolicy(SetIamPolicyRequest) returns (Policy);
+  rpc TestIamPermissions(TestIamPermissionsRequest) returns (TestIamPermissionsResponse);
 }
 
 service Subscriber {
   rpc CreateSubscription(Subscription) returns (Subscription);
+  rpc UpdateSubscription(UpdateSubscriptionRequest) returns (Subscription);
   rpc GetSubscription(GetSubscriptionRequest) returns (Subscription);
   rpc ListSubscriptions(ListSubscriptionsRequest) returns (ListSubscriptionsResponse);
   rpc DeleteSubscription(DeleteSubscriptionRequest) returns (Empty);
+  rpc ModifyPushConfig(ModifyPushConfigRequest) returns (Empty);
   rpc Pull(PullRequest) returns (PullResponse);
   rpc StreamingPull(stream StreamingPullRequest) returns (stream StreamingPullResponse);
   rpc Acknowledge(AcknowledgeRequest) returns (Empty);
   rpc ModifyAckDeadline(ModifyAckDeadlineRequest) returns (Empty);
   rpc Seek(SeekRequest) returns (SeekResponse);
+  rpc CreateSnapshot(CreateSnapshotRequest) returns (Snapshot);
+  rpc UpdateSnapshot(UpdateSnapshotRequest) returns (Snapshot);
+  rpc GetSnapshot(GetSnapshotRequest) returns (Snapshot);
+  rpc ListSnapshots(ListSnapshotsRequest) returns (ListSnapshotsResponse);
+  rpc DeleteSnapshot(DeleteSnapshotRequest) returns (Empty);
+  rpc GetIamPolicy(GetIamPolicyRequest) returns (Policy);
+  rpc SetIamPolicy(SetIamPolicyRequest) returns (Policy);
+  rpc TestIamPermissions(TestIamPermissionsRequest) returns (TestIamPermissionsResponse);
+}
+
+service SchemaService {
+  rpc CreateSchema(CreateSchemaRequest) returns (Schema);
+  rpc GetSchema(GetSchemaRequest) returns (Schema);
+  rpc ListSchemas(ListSchemasRequest) returns (ListSchemasResponse);
+  rpc DeleteSchema(DeleteSchemaRequest) returns (Empty);
+  rpc ValidateSchema(ValidateSchemaRequest) returns (ValidateSchemaResponse);
+  rpc ValidateMessage(ValidateMessageRequest) returns (ValidateMessageResponse);
 }
 
 message Empty {}
@@ -31,6 +56,11 @@ message Topic {
   string name = 1;
   map<string, string> labels = 2;
   string kms_key_name = 5;
+}
+
+message UpdateTopicRequest {
+  Topic topic = 1;
+  google.protobuf.FieldMask update_mask = 2;
 }
 
 message PubsubMessage {
@@ -61,6 +91,15 @@ message ListTopicsResponse {
   repeated Topic topics = 1;
   string next_page_token = 2;
 }
+message ListTopicSubscriptionsRequest {
+  string topic = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+message ListTopicSubscriptionsResponse {
+  repeated string subscriptions = 1;
+  string next_page_token = 2;
+}
 
 message PushConfig {
   string push_endpoint = 1;
@@ -89,6 +128,16 @@ message Subscription {
   RetryPolicy retry_policy = 14;
   bool detached = 15;
   bool enable_exactly_once_delivery = 16;
+}
+
+message UpdateSubscriptionRequest {
+  Subscription subscription = 1;
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+message ModifyPushConfigRequest {
+  string subscription = 1;
+  PushConfig push_config = 2;
 }
 
 message GetSubscriptionRequest { string subscription = 1; }
@@ -143,6 +192,36 @@ message StreamingPullResponse {
   repeated ReceivedMessage received_messages = 1;
 }
 
+message Snapshot {
+  string name = 1;
+  string topic = 2;
+  google.protobuf.Timestamp expire_time = 3;
+  map<string, string> labels = 4;
+}
+
+message CreateSnapshotRequest {
+  string name = 1;
+  string subscription = 2;
+  map<string, string> labels = 3;
+}
+
+message UpdateSnapshotRequest {
+  Snapshot snapshot = 1;
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+message GetSnapshotRequest { string snapshot = 1; }
+message DeleteSnapshotRequest { string snapshot = 1; }
+message ListSnapshotsRequest {
+  string project = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+message ListSnapshotsResponse {
+  repeated Snapshot snapshots = 1;
+  string next_page_token = 2;
+}
+
 message SeekRequest {
   string subscription = 1;
   oneof target {
@@ -152,3 +231,87 @@ message SeekRequest {
 }
 
 message SeekResponse {}
+
+message Binding {
+  string role = 1;
+  repeated string members = 2;
+}
+
+message Policy {
+  int32 version = 1;
+  repeated Binding bindings = 2;
+  string etag = 3;
+}
+
+message GetIamPolicyRequest {
+  string resource = 1;
+}
+
+message SetIamPolicyRequest {
+  string resource = 1;
+  Policy policy = 2;
+}
+
+message TestIamPermissionsRequest {
+  string resource = 1;
+  repeated string permissions = 2;
+}
+
+message TestIamPermissionsResponse {
+  repeated string permissions = 1;
+}
+
+enum SchemaType {
+  SCHEMA_TYPE_UNSPECIFIED = 0;
+  PROTOCOL_BUFFER = 1;
+  AVRO = 2;
+}
+
+message Schema {
+  string name = 1;
+  SchemaType type = 2;
+  string definition = 3;
+}
+
+message CreateSchemaRequest {
+  string parent = 1;
+  Schema schema = 2;
+  string schema_id = 3;
+}
+
+message GetSchemaRequest { string name = 1; }
+message DeleteSchemaRequest { string name = 1; }
+message ListSchemasRequest {
+  string parent = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+message ListSchemasResponse {
+  repeated Schema schemas = 1;
+  string next_page_token = 2;
+}
+
+message ValidateSchemaRequest {
+  string parent = 1;
+  Schema schema = 2;
+}
+
+message ValidateSchemaResponse {}
+
+enum Encoding {
+  ENCODING_UNSPECIFIED = 0;
+  JSON = 1;
+  BINARY = 2;
+}
+
+message ValidateMessageRequest {
+  string parent = 1;
+  oneof schema_spec {
+    string name = 2;
+    Schema schema = 3;
+  }
+  bytes message = 4;
+  Encoding encoding = 5;
+}
+
+message ValidateMessageResponse {}

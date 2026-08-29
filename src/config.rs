@@ -85,6 +85,16 @@ pub fn relay_events_catalog() -> Vec<&'static str> {
         .collect()
 }
 
+fn parse_env_bool(s: &str) -> Result<bool, String> {
+    match s {
+        "1" | "true" | "TRUE" | "yes" | "YES" => Ok(true),
+        "0" | "false" | "FALSE" | "no" | "NO" => Ok(false),
+        other => Err(format!(
+            "invalid boolean {other:?}, expected 0/1/true/false"
+        )),
+    }
+}
+
 #[derive(Debug, Clone, Parser)]
 #[command(name = "relay-pubsub")]
 #[command(about = "Google Cloud Pub/Sub compatibility gateway for Zyvor Relay")]
@@ -152,4 +162,33 @@ pub struct Config {
         default_value = "farm-actions-sub"
     )]
     pub fasal_actions_subscription: String,
+
+    /// Durable JSON state path for memory / relay-events local queues.
+    #[arg(
+        long,
+        env = "PUBSUB_DATA_DIR",
+        default_value = "/var/lib/relay-pubsub/data"
+    )]
+    pub data_dir: PathBuf,
+
+    /// Enable durable persistence for memory and relay-events backends.
+    #[arg(
+        long,
+        env = "PUBSUB_PERSIST",
+        default_value = "false",
+        value_parser = parse_env_bool
+    )]
+    pub persist: bool,
+
+    /// Comma-separated project allowlist (`projects/foo`). Empty = all.
+    #[arg(long, env = "PUBSUB_ALLOWED_PROJECTS", value_delimiter = ',')]
+    pub allowed_projects: Vec<String>,
+
+    /// Identity→project map: `sub=projects/foo,email@x=projects/bar`
+    #[arg(long, env = "PUBSUB_IDENTITY_PROJECT_MAP", default_value = "")]
+    pub identity_project_map: String,
+
+    /// Push dispatcher poll interval seconds (0 disables).
+    #[arg(long, env = "PUBSUB_PUSH_INTERVAL_SECONDS", default_value_t = 2)]
+    pub push_interval_seconds: u64,
 }

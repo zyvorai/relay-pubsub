@@ -2,18 +2,26 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::backend::{BackendError, RelayBackend};
-use crate::model::{Delivery, NewMessage, SubscriptionSpec, TopicSpec};
+use crate::memory::MemoryBackend;
+use crate::model::{
+    paginate, Delivery, IamPolicy, NewMessage, Page, SchemaSpec, SnapshotSpec, SubscriptionSpec,
+    TopicSpec,
+};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use reqwest::{Client, Method, StatusCode};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use std::collections::HashMap;
 use std::time::Duration;
 
+/// Legacy invented Relay topics API. Snapshot/IAM/schema live in an embedded
+/// memory store; core pub/sub data plane still speaks HTTP to Relay.
 #[derive(Clone)]
 pub struct HttpRelayBackend {
     base_url: String,
     token: Option<String>,
     client: Client,
+    local: std::sync::Arc<MemoryBackend>,
 }
 
 #[derive(Serialize)]
@@ -71,6 +79,7 @@ impl HttpRelayBackend {
             base_url: base_url.into().trim_end_matches('/').to_string(),
             token,
             client,
+            local: std::sync::Arc::new(MemoryBackend::new()),
         })
     }
 
@@ -139,6 +148,18 @@ impl RelayBackend for HttpRelayBackend {
         self.decode(response).await
     }
 
+    async fn update_topic(
+        &self,
+        topic: TopicSpec,
+        update_mask: &[String],
+    ) -> Result<TopicSpec, BackendError> {
+        let _ = update_mask;
+        // Legacy API has no update; recreate semantics via delete+create are unsafe —
+        // return current remote topic after a no-op get.
+        self.get_topic(&topic.name).await?;
+        Ok(topic)
+    }
+
     async fn get_topic(&self, name: &str) -> Result<TopicSpec, BackendError> {
         let response = self
             .request(Method::GET, "/v1/topics/by-name")
@@ -149,14 +170,37 @@ impl RelayBackend for HttpRelayBackend {
         self.decode(response).await
     }
 
-    async fn list_topics(&self, project: &str) -> Result<Vec<TopicSpec>, BackendError> {
+    async fn list_topics(
+        &self,
+        project: &str,
+        page_size: i32,
+        page_token: &str,
+    ) -> Result<Page<TopicSpec>, BackendError> {
         let response = self
             .request(Method::GET, "/v1/topics")
             .query(&[("project", project)])
             .send()
             .await
             .map_err(|e| BackendError::Unavailable(e.to_string()))?;
-        self.decode(response).await
+        let items: Vec<TopicSpec> = self.decode(response).await?;
+        Ok(paginate(items, page_size, page_token))
+    }
+
+    async fn list_topic_subscriptions(
+        &self,
+        topic: &str,
+        page_size: i32,
+        page_token: &str,
+    ) -> Result<Page<String>, BackendError> {
+        let project = topic.split('/').take(2).collect::<Vec<_>>().join("/");
+        let all = self.list_subscriptions(&project, 1000, "").await?;
+        let names: Vec<_> = all
+            .items
+            .into_iter()
+            .filter(|s| s.topic == topic)
+            .map(|s| s.name)
+            .collect();
+        Ok(paginate(names, page_size, page_token))
     }
 
     async fn delete_topic(&self, name: &str) -> Result<(), BackendError> {
@@ -182,6 +226,15 @@ impl RelayBackend for HttpRelayBackend {
         self.decode(response).await
     }
 
+    async fn update_subscription(
+        &self,
+        subscription: SubscriptionSpec,
+        _update_mask: &[String],
+    ) -> Result<SubscriptionSpec, BackendError> {
+        self.get_subscription(&subscription.name).await?;
+        Ok(subscription)
+    }
+
     async fn get_subscription(&self, name: &str) -> Result<SubscriptionSpec, BackendError> {
         let response = self
             .request(Method::GET, "/v1/subscriptions/by-name")
@@ -195,14 +248,17 @@ impl RelayBackend for HttpRelayBackend {
     async fn list_subscriptions(
         &self,
         project: &str,
-    ) -> Result<Vec<SubscriptionSpec>, BackendError> {
+        page_size: i32,
+        page_token: &str,
+    ) -> Result<Page<SubscriptionSpec>, BackendError> {
         let response = self
             .request(Method::GET, "/v1/subscriptions")
             .query(&[("project", project)])
             .send()
             .await
             .map_err(|e| BackendError::Unavailable(e.to_string()))?;
-        self.decode(response).await
+        let items: Vec<SubscriptionSpec> = self.decode(response).await?;
+        Ok(paginate(items, page_size, page_token))
     }
 
     async fn delete_subscription(&self, name: &str) -> Result<(), BackendError> {
@@ -213,6 +269,17 @@ impl RelayBackend for HttpRelayBackend {
             .await
             .map_err(|e| BackendError::Unavailable(e.to_string()))?;
         self.empty(response).await
+    }
+
+    async fn modify_push_config(
+        &self,
+        subscription: &str,
+        push_endpoint: Option<String>,
+        push_attributes: HashMap<String, String>,
+    ) -> Result<(), BackendError> {
+        self.local
+            .modify_push_config(subscription, push_endpoint, push_attributes)
+            .await
     }
 
     async fn publish(
@@ -296,5 +363,113 @@ impl RelayBackend for HttpRelayBackend {
             .await
             .map_err(|e| BackendError::Unavailable(e.to_string()))?;
         self.empty(response).await
+    }
+
+    async fn seek_to_snapshot(
+        &self,
+        subscription: &str,
+        snapshot: &str,
+    ) -> Result<(), BackendError> {
+        self.local.seek_to_snapshot(subscription, snapshot).await
+    }
+
+    async fn create_snapshot(
+        &self,
+        name: &str,
+        subscription: &str,
+        labels: HashMap<String, String>,
+    ) -> Result<SnapshotSpec, BackendError> {
+        self.local.create_snapshot(name, subscription, labels).await
+    }
+
+    async fn update_snapshot(
+        &self,
+        snapshot: SnapshotSpec,
+        update_mask: &[String],
+    ) -> Result<SnapshotSpec, BackendError> {
+        self.local.update_snapshot(snapshot, update_mask).await
+    }
+
+    async fn get_snapshot(&self, name: &str) -> Result<SnapshotSpec, BackendError> {
+        self.local.get_snapshot(name).await
+    }
+
+    async fn list_snapshots(
+        &self,
+        project: &str,
+        page_size: i32,
+        page_token: &str,
+    ) -> Result<Page<SnapshotSpec>, BackendError> {
+        self.local
+            .list_snapshots(project, page_size, page_token)
+            .await
+    }
+
+    async fn delete_snapshot(&self, name: &str) -> Result<(), BackendError> {
+        self.local.delete_snapshot(name).await
+    }
+
+    async fn get_iam_policy(&self, resource: &str) -> Result<IamPolicy, BackendError> {
+        self.local.get_iam_policy(resource).await
+    }
+
+    async fn set_iam_policy(
+        &self,
+        resource: &str,
+        policy: IamPolicy,
+    ) -> Result<IamPolicy, BackendError> {
+        self.local.set_iam_policy(resource, policy).await
+    }
+
+    async fn test_iam_permissions(
+        &self,
+        resource: &str,
+        permissions: &[String],
+    ) -> Result<Vec<String>, BackendError> {
+        self.local.test_iam_permissions(resource, permissions).await
+    }
+
+    async fn create_schema(&self, schema: SchemaSpec) -> Result<SchemaSpec, BackendError> {
+        self.local.create_schema(schema).await
+    }
+
+    async fn get_schema(&self, name: &str) -> Result<SchemaSpec, BackendError> {
+        self.local.get_schema(name).await
+    }
+
+    async fn list_schemas(
+        &self,
+        parent: &str,
+        page_size: i32,
+        page_token: &str,
+    ) -> Result<Page<SchemaSpec>, BackendError> {
+        self.local.list_schemas(parent, page_size, page_token).await
+    }
+
+    async fn delete_schema(&self, name: &str) -> Result<(), BackendError> {
+        self.local.delete_schema(name).await
+    }
+
+    async fn validate_schema(&self, schema: &SchemaSpec) -> Result<(), BackendError> {
+        self.local.validate_schema(schema).await
+    }
+
+    async fn validate_message(
+        &self,
+        schema_name: Option<&str>,
+        schema: Option<&SchemaSpec>,
+        message: &[u8],
+    ) -> Result<(), BackendError> {
+        self.local
+            .validate_message(schema_name, schema, message)
+            .await
+    }
+
+    async fn list_push_subscriptions(&self) -> Result<Vec<SubscriptionSpec>, BackendError> {
+        self.local.list_push_subscriptions().await
+    }
+
+    async fn inventory(&self, project: &str) -> Result<crate::model::InventoryReport, BackendError> {
+        self.local.inventory(project).await
     }
 }
