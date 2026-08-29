@@ -39,71 +39,295 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 </thead>
 <tbody><tr>
 <td><a href="guides/configure.md">Configure</a></td>
-<td></td>
+<td>Create or delete topics/subscriptions. Show setup guide link available here.</td>
 </tr>
 <tr>
 <td><a href="guides/demo.md">Live demo</a></td>
-<td></td>
+<td>Publish → pull → ack against the real gateway. Generate Demo catalog first if the topic is missing.</td>
 </tr>
 <tr>
 <td><a href="guides/generate.md">Generate</a></td>
-<td></td>
+<td>Seed Demo or Farm catalogs into memory so Demo and Tests have topics to use.</td>
 </tr>
 <tr>
 <td><a href="guides/incoming.md">Incoming</a></td>
-<td></td>
+<td>Publish JSON payloads into a selected topic.</td>
 </tr>
 <tr>
 <td><a href="guides/logs.md">Logs</a></td>
-<td></td>
+<td>Tail gateway logs with level/text filters.</td>
 </tr>
 <tr>
 <td><a href="guides/outgoing.md">Outgoing</a></td>
-<td></td>
+<td>Pull deliveries, enable live receive, ack messages.</td>
 </tr>
 <tr>
 <td><a href="guides/stored.md">Stored</a></td>
-<td></td>
+<td>Peek topic message counts and payloads without consuming. Empty state can reopen the setup guide.</td>
 </tr>
 <tr>
 <td><a href="guides/tests.md">Tests</a></td>
-<td></td>
+<td>Run healthz, smoke, and conformance from the browser.</td>
 </tr>
 </tbody></table>
 <hr>
 <p>8 guides. Regenerate: <code>node scripts/customer-docs/generate-guide-index.mjs</code>.</p>
 <hr>
 <h2>Configure</h2>
+<h3>Purpose</h3>
 <p>Create or delete topics/subscriptions. Show setup guide link available here.</p>
-<p>← <a href="index.md">All pages</a></p>
+<h3>When to use it</h3>
+<ul>
+<li>Open <strong>Configure</strong> when the job matches this screen</li>
+<li>Prefer the product home / Get started panel if you are unsure where to begin</li>
+<li>Confirm health and auth tokens if probes fail</li>
+</ul>
+<h3>How to get there</h3>
+<ul>
+<li>UI path: <code>/ui/</code> → <strong>Configure</strong> (or matching nav tab)</li>
+<li>Spotlight / in-app links when available</li>
+</ul>
+<h3>Operate from the console (UX)</h3>
+<ol>
+<li>Open the relay-pubsub UI (<code>/ui/</code>) on <code>https://&lt;host&gt;:…</code> (see Admin basics for the default port).</li>
+<li>Navigate to <strong>Configure</strong>.</li>
+<li>Complete the on-screen fields / actions for this surface (Create or delete topics/subscriptions. Show setup guide link available here.).</li>
+<li>Use <strong>Probe</strong> / <strong>Save</strong> / <strong>Send</strong> (or the primary button on the page) and watch status chips.</li>
+<li><strong>Empty / fail:</strong> Check Admin basics env vars, JWT/<code>API_TOKEN</code>, TLS insecure for lab certs, and backend reachability.</li>
+<li><strong>Success:</strong> Status shows healthy / accepted; related Lab or Logs surfaces reflect the change.</li>
+</ol>
+<p>Never publish lab IPs — use <code>&lt;host&gt;</code>.</p>
+<h3>Related pages</h3>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../../admin-basics.md">Admin basics</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
 <hr>
 <h2>Live demo</h2>
+<h3>Purpose</h3>
 <p>Publish → pull → ack against the real gateway. Generate Demo catalog first if the topic is missing.</p>
-<p>← <a href="index.md">All pages</a></p>
+<h3>When to use it</h3>
+<ul>
+<li>Open <strong>Live demo</strong> when the job matches this screen</li>
+<li>Prefer the product home / Get started panel if you are unsure where to begin</li>
+<li>Confirm health and auth tokens if probes fail</li>
+</ul>
+<h3>How to get there</h3>
+<ul>
+<li>UI path: <code>/ui/</code> → <strong>Live demo</strong> (or matching nav tab)</li>
+<li>Spotlight / in-app links when available</li>
+</ul>
+<h3>Operate from the console (UX)</h3>
+<ol>
+<li>Open the relay-pubsub UI (<code>/ui/</code>) on <code>https://&lt;host&gt;:…</code> (see Admin basics for the default port).</li>
+<li>Navigate to <strong>Live demo</strong>.</li>
+<li>Complete the on-screen fields / actions for this surface (Publish → pull → ack against the real gateway. Generate Demo catalog first if the topic is missing.).</li>
+<li>Use <strong>Probe</strong> / <strong>Save</strong> / <strong>Send</strong> (or the primary button on the page) and watch status chips.</li>
+<li><strong>Empty / fail:</strong> Check Admin basics env vars, JWT/<code>API_TOKEN</code>, TLS insecure for lab certs, and backend reachability.</li>
+<li><strong>Success:</strong> Status shows healthy / accepted; related Lab or Logs surfaces reflect the change.</li>
+</ol>
+<p>Never publish lab IPs — use <code>&lt;host&gt;</code>.</p>
+<h3>Related pages</h3>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../../admin-basics.md">Admin basics</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
 <hr>
 <h2>Generate</h2>
+<h3>Purpose</h3>
 <p>Seed Demo or Farm catalogs into memory so Demo and Tests have topics to use.</p>
-<p>← <a href="index.md">All pages</a></p>
+<h3>When to use it</h3>
+<ul>
+<li>Open <strong>Generate</strong> when the job matches this screen</li>
+<li>Prefer the product home / Get started panel if you are unsure where to begin</li>
+<li>Confirm health and auth tokens if probes fail</li>
+</ul>
+<h3>How to get there</h3>
+<ul>
+<li>UI path: <code>/ui/</code> → <strong>Generate</strong> (or matching nav tab)</li>
+<li>Spotlight / in-app links when available</li>
+</ul>
+<h3>Operate from the console (UX)</h3>
+<ol>
+<li>Open the relay-pubsub UI (<code>/ui/</code>) on <code>https://&lt;host&gt;:…</code> (see Admin basics for the default port).</li>
+<li>Navigate to <strong>Generate</strong>.</li>
+<li>Complete the on-screen fields / actions for this surface (Seed Demo or Farm catalogs into memory so Demo and Tests have topics to use.).</li>
+<li>Use <strong>Probe</strong> / <strong>Save</strong> / <strong>Send</strong> (or the primary button on the page) and watch status chips.</li>
+<li><strong>Empty / fail:</strong> Check Admin basics env vars, JWT/<code>API_TOKEN</code>, TLS insecure for lab certs, and backend reachability.</li>
+<li><strong>Success:</strong> Status shows healthy / accepted; related Lab or Logs surfaces reflect the change.</li>
+</ol>
+<p>Never publish lab IPs — use <code>&lt;host&gt;</code>.</p>
+<h3>Related pages</h3>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../../admin-basics.md">Admin basics</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
 <hr>
 <h2>Incoming</h2>
+<h3>Purpose</h3>
 <p>Publish JSON payloads into a selected topic.</p>
-<p>← <a href="index.md">All pages</a></p>
+<h3>When to use it</h3>
+<ul>
+<li>Open <strong>Incoming</strong> when the job matches this screen</li>
+<li>Prefer the product home / Get started panel if you are unsure where to begin</li>
+<li>Confirm health and auth tokens if probes fail</li>
+</ul>
+<h3>How to get there</h3>
+<ul>
+<li>UI path: <code>/ui/</code> → <strong>Incoming</strong> (or matching nav tab)</li>
+<li>Spotlight / in-app links when available</li>
+</ul>
+<h3>Operate from the console (UX)</h3>
+<ol>
+<li>Open the relay-pubsub UI (<code>/ui/</code>) on <code>https://&lt;host&gt;:…</code> (see Admin basics for the default port).</li>
+<li>Navigate to <strong>Incoming</strong>.</li>
+<li>Complete the on-screen fields / actions for this surface (Publish JSON payloads into a selected topic.).</li>
+<li>Use <strong>Probe</strong> / <strong>Save</strong> / <strong>Send</strong> (or the primary button on the page) and watch status chips.</li>
+<li><strong>Empty / fail:</strong> Check Admin basics env vars, JWT/<code>API_TOKEN</code>, TLS insecure for lab certs, and backend reachability.</li>
+<li><strong>Success:</strong> Status shows healthy / accepted; related Lab or Logs surfaces reflect the change.</li>
+</ol>
+<p>Never publish lab IPs — use <code>&lt;host&gt;</code>.</p>
+<h3>Related pages</h3>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../../admin-basics.md">Admin basics</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
 <hr>
 <h2>Logs</h2>
+<h3>Purpose</h3>
 <p>Tail gateway logs with level/text filters.</p>
-<p>← <a href="index.md">All pages</a></p>
+<h3>When to use it</h3>
+<ul>
+<li>Open <strong>Logs</strong> when the job matches this screen</li>
+<li>Prefer the product home / Get started panel if you are unsure where to begin</li>
+<li>Confirm health and auth tokens if probes fail</li>
+</ul>
+<h3>How to get there</h3>
+<ul>
+<li>UI path: <code>/ui/</code> → <strong>Logs</strong> (or matching nav tab)</li>
+<li>Spotlight / in-app links when available</li>
+</ul>
+<h3>Operate from the console (UX)</h3>
+<ol>
+<li>Open the relay-pubsub UI (<code>/ui/</code>) on <code>https://&lt;host&gt;:…</code> (see Admin basics for the default port).</li>
+<li>Navigate to <strong>Logs</strong>.</li>
+<li>Complete the on-screen fields / actions for this surface (Tail gateway logs with level/text filters.).</li>
+<li>Use <strong>Probe</strong> / <strong>Save</strong> / <strong>Send</strong> (or the primary button on the page) and watch status chips.</li>
+<li><strong>Empty / fail:</strong> Check Admin basics env vars, JWT/<code>API_TOKEN</code>, TLS insecure for lab certs, and backend reachability.</li>
+<li><strong>Success:</strong> Status shows healthy / accepted; related Lab or Logs surfaces reflect the change.</li>
+</ol>
+<p>Never publish lab IPs — use <code>&lt;host&gt;</code>.</p>
+<h3>Related pages</h3>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../../admin-basics.md">Admin basics</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
 <hr>
 <h2>Outgoing</h2>
+<h3>Purpose</h3>
 <p>Pull deliveries, enable live receive, ack messages.</p>
-<p>← <a href="index.md">All pages</a></p>
+<h3>When to use it</h3>
+<ul>
+<li>Open <strong>Outgoing</strong> when the job matches this screen</li>
+<li>Prefer the product home / Get started panel if you are unsure where to begin</li>
+<li>Confirm health and auth tokens if probes fail</li>
+</ul>
+<h3>How to get there</h3>
+<ul>
+<li>UI path: <code>/ui/</code> → <strong>Outgoing</strong> (or matching nav tab)</li>
+<li>Spotlight / in-app links when available</li>
+</ul>
+<h3>Operate from the console (UX)</h3>
+<ol>
+<li>Open the relay-pubsub UI (<code>/ui/</code>) on <code>https://&lt;host&gt;:…</code> (see Admin basics for the default port).</li>
+<li>Navigate to <strong>Outgoing</strong>.</li>
+<li>Complete the on-screen fields / actions for this surface (Pull deliveries, enable live receive, ack messages.).</li>
+<li>Use <strong>Probe</strong> / <strong>Save</strong> / <strong>Send</strong> (or the primary button on the page) and watch status chips.</li>
+<li><strong>Empty / fail:</strong> Check Admin basics env vars, JWT/<code>API_TOKEN</code>, TLS insecure for lab certs, and backend reachability.</li>
+<li><strong>Success:</strong> Status shows healthy / accepted; related Lab or Logs surfaces reflect the change.</li>
+</ol>
+<p>Never publish lab IPs — use <code>&lt;host&gt;</code>.</p>
+<h3>Related pages</h3>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../../admin-basics.md">Admin basics</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
 <hr>
 <h2>Stored</h2>
+<h3>Purpose</h3>
 <p>Peek topic message counts and payloads without consuming. Empty state can reopen the setup guide.</p>
-<p>← <a href="index.md">All pages</a></p>
+<h3>When to use it</h3>
+<ul>
+<li>Open <strong>Stored</strong> when the job matches this screen</li>
+<li>Prefer the product home / Get started panel if you are unsure where to begin</li>
+<li>Confirm health and auth tokens if probes fail</li>
+</ul>
+<h3>How to get there</h3>
+<ul>
+<li>UI path: <code>/ui/</code> → <strong>Stored</strong> (or matching nav tab)</li>
+<li>Spotlight / in-app links when available</li>
+</ul>
+<h3>Operate from the console (UX)</h3>
+<ol>
+<li>Open the relay-pubsub UI (<code>/ui/</code>) on <code>https://&lt;host&gt;:…</code> (see Admin basics for the default port).</li>
+<li>Navigate to <strong>Stored</strong>.</li>
+<li>Complete the on-screen fields / actions for this surface (Peek topic message counts and payloads without consuming. Empty state can reopen the setup guide.).</li>
+<li>Use <strong>Probe</strong> / <strong>Save</strong> / <strong>Send</strong> (or the primary button on the page) and watch status chips.</li>
+<li><strong>Empty / fail:</strong> Check Admin basics env vars, JWT/<code>API_TOKEN</code>, TLS insecure for lab certs, and backend reachability.</li>
+<li><strong>Success:</strong> Status shows healthy / accepted; related Lab or Logs surfaces reflect the change.</li>
+</ol>
+<p>Never publish lab IPs — use <code>&lt;host&gt;</code>.</p>
+<h3>Related pages</h3>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../../admin-basics.md">Admin basics</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
 <hr>
 <h2>Tests</h2>
+<h3>Purpose</h3>
 <p>Run healthz, smoke, and conformance from the browser.</p>
-<p>← <a href="index.md">All pages</a></p>
+<h3>When to use it</h3>
+<ul>
+<li>Open <strong>Tests</strong> when the job matches this screen</li>
+<li>Prefer the product home / Get started panel if you are unsure where to begin</li>
+<li>Confirm health and auth tokens if probes fail</li>
+</ul>
+<h3>How to get there</h3>
+<ul>
+<li>UI path: <code>/ui/</code> → <strong>Tests</strong> (or matching nav tab)</li>
+<li>Spotlight / in-app links when available</li>
+</ul>
+<h3>Operate from the console (UX)</h3>
+<ol>
+<li>Open the relay-pubsub UI (<code>/ui/</code>) on <code>https://&lt;host&gt;:…</code> (see Admin basics for the default port).</li>
+<li>Navigate to <strong>Tests</strong>.</li>
+<li>Complete the on-screen fields / actions for this surface (Run healthz, smoke, and conformance from the browser.).</li>
+<li>Use <strong>Probe</strong> / <strong>Save</strong> / <strong>Send</strong> (or the primary button on the page) and watch status chips.</li>
+<li><strong>Empty / fail:</strong> Check Admin basics env vars, JWT/<code>API_TOKEN</code>, TLS insecure for lab certs, and backend reachability.</li>
+<li><strong>Success:</strong> Status shows healthy / accepted; related Lab or Logs surfaces reflect the change.</li>
+</ol>
+<p>Never publish lab IPs — use <code>&lt;host&gt;</code>.</p>
+<h3>Related pages</h3>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../../admin-basics.md">Admin basics</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
 <hr>
 <h2>relay-pubsub — Complete page index</h2>
 <p>Every primary navigable dashboard route.</p>

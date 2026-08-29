@@ -8,4 +8,3 @@ Rebuild: `node scripts/customer-docs/build-customer-pdfs.mjs`
 - `relay-pubsub-Getting-Started.pdf` — Getting Started
 - `relay-pubsub-Admin-Basics.pdf` — Admin Basics
 - `relay-pubsub-Page-by-Page.pdf` — Page-by-Page Product Manual
-- `relay-pubsub-Stack-Day0.pdf` — Stack day-0 onboarding

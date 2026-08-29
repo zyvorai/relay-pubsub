@@ -26,15 +26,45 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <div class="sub">Getting Started</div>
 <div class="badge">2026-08-29</div>
 <div class="foot">zyvor.dev · Confidential — for licensed customers</div></section>
-<main><p>Full stack order: <strong><a href="/docs/relay-stack-onboarding">Relay stack day-0 onboarding</a></strong>.</p>
+<main><h2>Purpose</h2>
+<p>Full stack order: <strong><a href="/docs/relay-stack-onboarding">Relay stack day-0 onboarding</a></strong>.</p>
 <ol>
 <li>Deploy the gateway (<code>scripts/deploy-remote.sh</code>) with <code>RELAY_BACKEND=relay-events</code> and <code>RELAY_BASE_URL=https://&lt;relay-host&gt;:…</code>.</li>
 <li>Deploy the console: <code>scripts/deploy-console-remote.sh &lt;host&gt; &lt;user&gt; --gateway https://127.0.0.1:8081</code> (upstream is loopback <strong>on the console host</strong> when gateway is co-located).</li>
 <li>Open <code>https://&lt;host&gt;:8082/</code> — accept the self-signed cert.</li>
 <li>Complete the <strong>Get started</strong> panel (or Skip): Generate → Demo → Stored.</li>
-<li>Confirm status shows <strong>Connected</strong>.</li>
+<li>Confirm status shows <strong>Connected</strong>.
+Relay JWT is configured on the <strong>gateway</strong>, not in the browser.</li>
 </ol>
-<p>Relay JWT is configured on the <strong>gateway</strong>, not in the browser.</p>
+<h2>When to use it</h2>
+<ul>
+<li>Open <strong>Getting started — relay-pubsub</strong> when the job matches this screen</li>
+<li>Prefer the product home / Get started panel if you are unsure where to begin</li>
+<li>Confirm health and auth tokens if probes fail</li>
+</ul>
+<h2>How to get there</h2>
+<ul>
+<li>UI path: <code>/ui/</code> → <strong>Getting started — relay-pubsub</strong> (or matching nav tab)</li>
+<li>Spotlight / in-app links when available</li>
+</ul>
+<h2>Operate from the console (UX)</h2>
+<ol>
+<li>Open the relay-pubsub UI (<code>/ui/</code>) on <code>https://&lt;host&gt;:…</code> (see Admin basics for the default port).</li>
+<li>Navigate to <strong>Getting started — relay-pubsub</strong>.</li>
+<li>Complete the on-screen fields / actions for this surface (Full stack order: <strong><a href="/docs/relay-stack-onboarding">Relay stack day-0 onboarding</a></strong>.</li>
+<li>Deploy the gateway (`scripts/depl…).</li>
+<li>Use <strong>Probe</strong> / <strong>Save</strong> / <strong>Send</strong> (or the primary button on the page) and watch status chips.</li>
+<li><strong>Empty / fail:</strong> Check Admin basics env vars, JWT/<code>API_TOKEN</code>, TLS insecure for lab certs, and backend reachability.</li>
+<li><strong>Success:</strong> Status shows healthy / accepted; related Lab or Logs surfaces reflect the change.</li>
+</ol>
+<p>Never publish lab IPs — use <code>&lt;host&gt;</code>.</p>
+<h2>Related pages</h2>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../../admin-basics.md">Admin basics</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
 <hr>
 <table>
 <thead>
@@ -76,11 +106,49 @@ hr{border:none;border-top:1px solid #e5e7eb;margin:1.2em 0}
 <td>Live gateway log tail</td>
 </tr>
 </tbody></table>
+<h2>Operate from the console (UX)</h2>
+<ol>
+<li>Open this route from the nav or command palette and wait for live API data.</li>
+<li>Use filters/search when present; drill into a row for detail.</li>
+<li>For mutating actions: confirm role gates and impact before applying.</li>
+<li><strong>Empty / fail:</strong> Check service health, auth, and that required CRDs/backends for this domain are installed.</li>
+<li><strong>Success:</strong> Live data loads; created/updated objects appear without error toasts.</li>
+</ol>
 <hr>
+<h2>Purpose</h2>
 <ol>
 <li><strong>Publish → Relay Accept</strong> — REST/gRPC publish maps topic → event type.</li>
 <li><strong>Act → pull</strong> — Relay POSTs <code>/v1/actions</code>; consumer pulls the actions subscription.</li>
 <li><strong>Stored inventory</strong> — Generate catalogs, then open Console → Stored.</li>
 <li><strong>Empty Stored</strong> — use <strong>Show setup guide</strong> or Generate Demo catalog.</li>
 </ol>
+<h2>When to use it</h2>
+<ul>
+<li>Open <strong>Common workflows</strong> when the job matches this screen</li>
+<li>Prefer the product home / Get started panel if you are unsure where to begin</li>
+<li>Confirm health and auth tokens if probes fail</li>
+</ul>
+<h2>How to get there</h2>
+<ul>
+<li>UI path: <code>/ui/</code> → <strong>Common workflows</strong> (or matching nav tab)</li>
+<li>Spotlight / in-app links when available</li>
+</ul>
+<h2>Operate from the console (UX)</h2>
+<ol>
+<li>Open the relay-pubsub UI (<code>/ui/</code>) on <code>https://&lt;host&gt;:…</code> (see Admin basics for the default port).</li>
+<li>Navigate to <strong>Common workflows</strong>.</li>
+<li>Complete the on-screen fields / actions for this surface (1. <strong>Publish → Relay Accept</strong> — REST/gRPC publish maps topic → event type.</li>
+<li><strong>Act → pull</strong> — Relay POSTs <code>/v1/actions</code>…).</li>
+<li>Use <strong>Probe</strong> / <strong>Save</strong> / <strong>Send</strong> (or the primary button on the page) and watch status chips.</li>
+<li><strong>Empty / fail:</strong> Check Admin basics env vars, JWT/<code>API_TOKEN</code>, TLS insecure for lab certs, and backend reachability.</li>
+<li><strong>Success:</strong> Status shows healthy / accepted; related Lab or Logs surfaces reflect the change.</li>
+</ol>
+<p>Never publish lab IPs — use <code>&lt;host&gt;</code>.</p>
+<h2>Related pages</h2>
+<ul>
+<li><a href="../../getting-started.md">Getting Started</a></li>
+<li><a href="../../using-the-dashboard.md">Using the Dashboard</a></li>
+<li><a href="../../admin-basics.md">Admin basics</a></li>
+<li><a href="../../PAGE_INDEX.md">Page index</a></li>
+</ul>
 </main></body></html>
