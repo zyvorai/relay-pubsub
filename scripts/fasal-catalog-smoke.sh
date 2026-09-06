@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2026 Zyvor AI Labs
+# Copyright 2026 Zyvor AI Labs · https://zyvor.dev
 # SPDX-License-Identifier: Apache-2.0
 # Drives the full Fasal event catalog (docs/RELAY_EVENTS_BACKEND.md,
 # mirroring zyvor/relay's docs/FASAL_ACCOMMODATION.md #4.1/#4.2) through the

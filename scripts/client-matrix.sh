@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Copyright 2026 Zyvor AI Labs
+# Copyright 2026 Zyvor AI Labs · https://zyvor.dev
 # SPDX-License-Identifier: Apache-2.0
-#
 # Client conformance matrix (v0.4 foundation).
 # Always runs REST + conformance-smoke. Optional lanes skip cleanly when
 # language SDKs are missing.

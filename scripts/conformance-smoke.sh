@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Copyright 2026 Zyvor AI Labs
+# Copyright 2026 Zyvor AI Labs · https://zyvor.dev
 # SPDX-License-Identifier: Apache-2.0
-#
 # Conformance smoke for v0.2+ surface: pagination, snapshots, seek, push config,
 # update APIs, IAM, schemas. Requires a running gateway (memory backend is fine).
 set -euo pipefail

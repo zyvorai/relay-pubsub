@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2026 Zyvor AI Labs
+# Copyright 2026 Zyvor AI Labs · https://zyvor.dev
 # SPDX-License-Identifier: Apache-2.0
 """Official google-cloud-pubsub client against a TLS gateway (self-signed OK).
 

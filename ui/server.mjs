@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Copyright 2026 Zyvor AI Labs
+// Copyright 2026 Zyvor AI Labs · https://zyvor.dev
 // SPDX-License-Identifier: Apache-2.0
-//
+
 // Serves the product UI over HTTPS and proxies gateway REST paths to
 // GATEWAY_UPSTREAM (insecure TLS OK). Same-origin fetch avoids the browser
 // rejecting a second self-signed cert on :8081.

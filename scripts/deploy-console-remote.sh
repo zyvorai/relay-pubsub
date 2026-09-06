@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Copyright 2026 Zyvor AI Labs
+# Copyright 2026 Zyvor AI Labs · https://zyvor.dev
 # SPDX-License-Identifier: Apache-2.0
-#
 # Deploys the ui/ product console to a remote host as
 # relay-pubsub-console.service — HTTPS static UI + same-origin proxy to
 # the gateway (avoids browser rejecting a second self-signed cert).

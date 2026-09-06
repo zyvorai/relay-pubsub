@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2026 Zyvor AI Labs
+# Copyright 2026 Zyvor AI Labs · https://zyvor.dev
 # SPDX-License-Identifier: Apache-2.0
 # Verify a deploy-k3s.sh deployment: rollout status + a real publish/pull
 # round-trip via scripts/smoke.sh, run against the in-cluster Service through

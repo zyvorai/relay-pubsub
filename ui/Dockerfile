@@ -1,3 +1,5 @@
+# Copyright 2026 Zyvor AI Labs · https://zyvor.dev
+# SPDX-License-Identifier: Apache-2.0
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package.json tsconfig.json index.html ./

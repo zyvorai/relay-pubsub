@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2026 Zyvor AI Labs
+# Copyright 2026 Zyvor AI Labs · https://zyvor.dev
 # SPDX-License-Identifier: Apache-2.0
 # Build (or pull) the relay-pubsub image and deploy it to a local k3s cluster
 # via the Helm chart, using the self-contained memory backend so the test

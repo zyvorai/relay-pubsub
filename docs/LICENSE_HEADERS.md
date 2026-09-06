@@ -9,7 +9,7 @@ All **source files** in this repository carry Apache-2.0 SPDX metadata at the to
 ## Required header
 
 ```text
-Copyright 2026 Zyvor AI Labs
+Copyright 2026 Zyvor AI Labs · https://zyvor.dev
 SPDX-License-Identifier: Apache-2.0
 ```
 
