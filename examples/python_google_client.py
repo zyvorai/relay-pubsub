@@ -33,7 +33,7 @@ except Exception as exc:
     if "AlreadyExists" not in type(exc).__name__ and "409" not in str(exc):
         raise
 
-future = publisher.publish(topic, b'{"order":"ORD-1001"}', source="python-google-client", ordering_key="customer-17")
+future = publisher.publish(topic, b'{"order":"ORD-1001"}', source="python-google-client", ordering_key="user-17")
 print("published:", future.result())
 
 response = subscriber.pull(request={"subscription": subscription, "max_messages": 10})

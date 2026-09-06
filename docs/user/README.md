@@ -1,4 +1,4 @@
-# relay-pubsub — Customer Documentation
+# relay-pubsub — User Documentation
 
 **relay-pubsub** is the Google Pub/Sub–compatible gateway for Zyvor Relay, plus an ops console on `:8082`.
 
@@ -17,12 +17,12 @@
 ## Printable PDFs
 
 ```bash
-node scripts/customer-docs/build-customer-pdfs.mjs
+node scripts/user-docs/build-user-pdfs.mjs
 ```
 
 Output lands in [`pdf/`](pdf/):
 
-- `relay-pubsub-Customer-README.pdf`
+- `relay-pubsub-User-README.pdf`
 - `relay-pubsub-Getting-Started.pdf`
 - `relay-pubsub-Page-by-Page.pdf`
 - `relay-pubsub-Admin-Basics.pdf`

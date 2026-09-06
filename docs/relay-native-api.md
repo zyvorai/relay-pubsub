@@ -67,7 +67,7 @@ Returns 2xx.
     {
       "data": [123,34,111,114,100,101,114,34,58,49,125],
       "attributes": {"region":"in"},
-      "ordering_key": "customer-17"
+      "ordering_key": "user-17"
     }
   ]
 }

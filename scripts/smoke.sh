@@ -15,7 +15,7 @@ curl -k -fsS -X PUT "$BASE/v1/$SUB" -H 'content-type: application/json' -d "{\"t
 
 DATA=$(printf '{"order":"ORD-1001"}' | base64 | tr -d '\n')
 echo "publish:"
-curl -k -fsS -X POST "$BASE/v1/$TOPIC:publish" -H 'content-type: application/json' -d "{\"messages\":[{\"data\":\"$DATA\",\"attributes\":{\"source\":\"curl\"},\"orderingKey\":\"customer-17\"}]}"
+curl -k -fsS -X POST "$BASE/v1/$TOPIC:publish" -H 'content-type: application/json' -d "{\"messages\":[{\"data\":\"$DATA\",\"attributes\":{\"source\":\"curl\"},\"orderingKey\":\"user-17\"}]}"
 echo
 
 echo "pull:"
