@@ -52,10 +52,17 @@ service SchemaService {
 
 message Empty {}
 
+message SchemaSettings {
+  string schema = 1;
+  // JSON | BINARY
+  string encoding = 2;
+}
+
 message Topic {
   string name = 1;
   map<string, string> labels = 2;
   string kms_key_name = 5;
+  SchemaSettings schema_settings = 6;
 }
 
 message UpdateTopicRequest {
@@ -128,6 +135,7 @@ message Subscription {
   RetryPolicy retry_policy = 14;
   bool detached = 15;
   bool enable_exactly_once_delivery = 16;
+  string filter = 12;
 }
 
 message UpdateSubscriptionRequest {

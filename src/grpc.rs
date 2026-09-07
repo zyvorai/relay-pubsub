@@ -97,10 +97,19 @@ fn field_mask_paths(mask: Option<prost_types::FieldMask>) -> Vec<String> {
 }
 
 fn topic_to_proto(value: TopicSpec) -> Topic {
+    let schema_settings = if value.schema_name.is_empty() {
+        None
+    } else {
+        Some(crate::google::pubsub::v1::SchemaSettings {
+            schema: value.schema_name,
+            encoding: value.schema_encoding,
+        })
+    };
     Topic {
         name: value.name,
         labels: value.labels,
         kms_key_name: value.kms_key_name,
+        schema_settings,
     }
 }
 
@@ -108,10 +117,16 @@ fn topic_from_proto(value: Topic) -> Result<TopicSpec, Status> {
     if value.name.is_empty() {
         return Err(Status::invalid_argument("topic name is required"));
     }
+    let (schema_name, schema_encoding) = value
+        .schema_settings
+        .map(|s| (s.schema, s.encoding))
+        .unwrap_or_default();
     Ok(TopicSpec {
         name: value.name,
         labels: value.labels,
         kms_key_name: value.kms_key_name,
+        schema_name,
+        schema_encoding,
     })
 }
 
@@ -146,6 +161,7 @@ fn subscription_to_proto(value: SubscriptionSpec) -> Subscription {
         }),
         detached: false,
         enable_exactly_once_delivery: value.enable_exactly_once_delivery,
+        filter: value.filter,
     }
 }
 
@@ -194,6 +210,7 @@ fn subscription_from_proto(value: Subscription) -> Result<SubscriptionSpec, Stat
         }),
         push_endpoint,
         push_attributes,
+        filter: value.filter,
     })
 }
 
@@ -469,6 +486,7 @@ impl Publisher for GatewayService {
                 data: m.data,
                 attributes: m.attributes,
                 ordering_key: m.ordering_key,
+                message_id: m.message_id,
             })
             .collect();
         match self.backend.publish(&req.topic, messages).await {

@@ -159,7 +159,16 @@ fn not_found(message: impl Into<String>) -> Response {
 }
 
 fn topic_json(topic: TopicSpec) -> Value {
-    json!({"name": topic.name, "labels": topic.labels, "kmsKeyName": topic.kms_key_name})
+    json!({
+        "name": topic.name,
+        "labels": topic.labels,
+        "kmsKeyName": topic.kms_key_name,
+        "schemaSettings": if topic.schema_name.is_empty() {
+            Value::Null
+        } else {
+            json!({"schema": topic.schema_name, "encoding": topic.schema_encoding})
+        }
+    })
 }
 
 fn subscription_json(sub: SubscriptionSpec) -> Value {
@@ -176,6 +185,7 @@ fn subscription_json(sub: SubscriptionSpec) -> Value {
         },
         "deadLetterPolicy": sub.dead_letter.map(|d| json!({"deadLetterTopic": d.topic, "maxDeliveryAttempts": d.max_delivery_attempts})),
         "retryPolicy": sub.retry.map(|r| json!({"minimumBackoff": format!("{}s", r.minimum_backoff_seconds), "maximumBackoff": format!("{}s", r.maximum_backoff_seconds)})),
+        "filter": sub.filter,
     })
 }
 
@@ -281,6 +291,18 @@ fn topic_spec_from_value(name: &str, value: &Value) -> TopicSpec {
             .and_then(Value::as_str)
             .unwrap_or("")
             .to_string(),
+        schema_name: value
+            .get("schemaSettings")
+            .and_then(|v| v.get("schema"))
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string(),
+        schema_encoding: value
+            .get("schemaSettings")
+            .and_then(|v| v.get("encoding"))
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string(),
     }
 }
 
@@ -314,6 +336,11 @@ fn subscription_spec_from_value(name: &str, value: &Value) -> Result<Subscriptio
         retry: parse_retry(value),
         push_endpoint,
         push_attributes,
+        filter: value
+            .get("filter")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string(),
     })
 }
 
@@ -486,6 +513,11 @@ fn parse_messages(body: &Value) -> Result<Vec<NewMessage>, Response> {
                 data: decoded,
                 attributes,
                 ordering_key,
+                message_id: m
+                    .get("messageId")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string(),
             })
         })
         .collect()
@@ -1046,6 +1078,8 @@ struct AdminPublish {
     attributes: HashMap<String, String>,
     #[serde(default)]
     ordering_key: String,
+    #[serde(default)]
+    message_id: String,
 }
 
 async fn admin_publish(
@@ -1064,6 +1098,7 @@ async fn admin_publish(
                 data: req.data.into_bytes(),
                 attributes: req.attributes,
                 ordering_key: req.ordering_key,
+                message_id: req.message_id,
             }],
         )
         .await

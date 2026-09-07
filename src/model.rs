@@ -5,13 +5,19 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct TopicSpec {
     pub name: String,
     #[serde(default)]
     pub labels: HashMap<String, String>,
     #[serde(default)]
     pub kms_key_name: String,
+    /// Bound schema resource name (`projects/.../schemas/...`).
+    #[serde(default)]
+    pub schema_name: String,
+    /// `JSON` or `BINARY`. Empty means JSON when a schema is bound.
+    #[serde(default)]
+    pub schema_encoding: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -26,7 +32,7 @@ pub struct RetrySpec {
     pub maximum_backoff_seconds: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct SubscriptionSpec {
     pub name: String,
     pub topic: String,
@@ -45,6 +51,9 @@ pub struct SubscriptionSpec {
     pub push_endpoint: Option<String>,
     #[serde(default)]
     pub push_attributes: HashMap<String, String>,
+    /// Google-compatible attribute filter. Immutable after create.
+    #[serde(default)]
+    pub filter: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -58,13 +67,16 @@ pub struct RelayMessage {
     pub published_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct NewMessage {
     pub data: Vec<u8>,
     #[serde(default)]
     pub attributes: HashMap<String, String>,
     #[serde(default)]
     pub ordering_key: String,
+    /// Publisher-supplied id used for topic-level dedup. Empty = assign UUID.
+    #[serde(default)]
+    pub message_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -146,6 +158,8 @@ pub struct SubscriptionInventory {
     pub push_attributes: HashMap<String, String>,
     #[serde(default)]
     pub dead_letter_topic: Option<String>,
+    #[serde(default)]
+    pub filter: String,
     /// Messages retained on the topic.
     pub topic_message_count: u64,
     /// Cursor into the topic stream (next index to deliver).

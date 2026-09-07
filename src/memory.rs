@@ -2,11 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::backend::{BackendError, RelayBackend};
+use crate::cloudevents;
+use crate::filter::AttributeFilter;
 use crate::model::{
     paginate, Delivery, IamBinding, IamPolicy, InventoryReport, MessagePreview, NewMessage, Page,
     RelayMessage, SchemaSpec, SnapshotSpec, SubscriptionInventory, SubscriptionSpec,
     TopicInventory, TopicSpec,
 };
+use crate::schema_validate;
 use async_trait::async_trait;
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use serde::{Deserialize, Serialize};
@@ -34,6 +37,8 @@ struct State {
 struct TopicState {
     spec: TopicSpec,
     messages: Vec<RelayMessage>,
+    #[serde(default)]
+    seen_ids: HashMap<String, String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -131,6 +136,8 @@ impl MemoryBackend {
         if mask.is_empty() || mask.iter().any(|f| f == "*") {
             existing.labels = incoming.labels.clone();
             existing.kms_key_name = incoming.kms_key_name.clone();
+            existing.schema_name = incoming.schema_name.clone();
+            existing.schema_encoding = incoming.schema_encoding.clone();
             return;
         }
         for field in mask {
@@ -138,6 +145,10 @@ impl MemoryBackend {
                 "labels" => existing.labels = incoming.labels.clone(),
                 "kms_key_name" | "kmsKeyName" => {
                     existing.kms_key_name = incoming.kms_key_name.clone()
+                }
+                "schema_settings" | "schemaSettings" | "schema_name" | "schemaName" => {
+                    existing.schema_name = incoming.schema_name.clone();
+                    existing.schema_encoding = incoming.schema_encoding.clone();
                 }
                 _ => {}
             }
@@ -158,6 +169,7 @@ impl MemoryBackend {
             existing.retry = incoming.retry.clone();
             existing.push_endpoint = incoming.push_endpoint.clone();
             existing.push_attributes = incoming.push_attributes.clone();
+            // filter is immutable after create (Google semantics).
             return;
         }
         for field in mask {
@@ -180,6 +192,7 @@ impl MemoryBackend {
                     existing.push_endpoint = incoming.push_endpoint.clone();
                     existing.push_attributes = incoming.push_attributes.clone();
                 }
+                "filter" => {}
                 _ => {}
             }
         }
@@ -248,6 +261,7 @@ impl RelayBackend for MemoryBackend {
             TopicState {
                 spec: topic.clone(),
                 messages: Vec::new(),
+                seen_ids: HashMap::new(),
             },
         );
         self.persist_locked(&state)?;
@@ -341,6 +355,9 @@ impl RelayBackend for MemoryBackend {
         if state.subscriptions.contains_key(&subscription.name) {
             return Err(BackendError::AlreadyExists(subscription.name));
         }
+        if !subscription.filter.trim().is_empty() {
+            AttributeFilter::parse(&subscription.filter)?;
+        }
         let topic_len = state
             .topics
             .get(&subscription.topic)
@@ -376,6 +393,14 @@ impl RelayBackend for MemoryBackend {
             .subscriptions
             .get_mut(&subscription.name)
             .ok_or_else(|| BackendError::NotFound(subscription.name.clone()))?;
+        if update_mask.iter().any(|f| f == "filter")
+            && !subscription.filter.is_empty()
+            && subscription.filter != entry.spec.filter
+        {
+            return Err(BackendError::FailedPrecondition(
+                "subscription filter is immutable after create".into(),
+            ));
+        }
         Self::apply_subscription_mask(&mut entry.spec, &subscription, update_mask);
         entry.spec.ack_deadline_seconds =
             Self::normalize_ack_deadline(entry.spec.ack_deadline_seconds.max(10));
@@ -442,15 +467,65 @@ impl RelayBackend for MemoryBackend {
         messages: Vec<NewMessage>,
     ) -> Result<Vec<String>, BackendError> {
         let mut state = self.state.write().await;
-        let topic_state = state
-            .topics
-            .get_mut(topic)
-            .ok_or_else(|| BackendError::NotFound(topic.to_string()))?;
+        if !state.topics.contains_key(topic) {
+            return Err(BackendError::NotFound(topic.to_string()));
+        }
+
+        let schema = {
+            let topic_state = state.topics.get(topic).unwrap();
+            if topic_state.spec.schema_name.is_empty() {
+                None
+            } else {
+                Some((
+                    topic_state.spec.schema_name.clone(),
+                    topic_state.spec.schema_encoding.clone(),
+                    state
+                        .schemas
+                        .get(&topic_state.spec.schema_name)
+                        .cloned()
+                        .ok_or_else(|| {
+                            BackendError::FailedPrecondition(format!(
+                                "bound schema {} not found",
+                                topic_state.spec.schema_name
+                            ))
+                        })?,
+                ))
+            }
+        };
+        if let Some((_, encoding, spec)) = &schema {
+            for message in &messages {
+                schema_validate::validate_payload(spec, encoding, &message.data)?;
+            }
+        }
 
         let now = Utc::now();
         let mut ids = Vec::with_capacity(messages.len());
-        for message in messages {
-            let id = Uuid::new_v4().to_string();
+        let topic_state = state.topics.get_mut(topic).unwrap();
+        for mut message in messages {
+            cloudevents::enrich_message(topic, &mut message);
+            let client_id = if !message.message_id.is_empty() {
+                message.message_id.clone()
+            } else {
+                message
+                    .attributes
+                    .get("idempotency_key")
+                    .cloned()
+                    .unwrap_or_default()
+            };
+            if !client_id.is_empty() {
+                if let Some(existing) = topic_state.seen_ids.get(&client_id) {
+                    ids.push(existing.clone());
+                    continue;
+                }
+            }
+            let id = if client_id.is_empty() {
+                Uuid::new_v4().to_string()
+            } else {
+                client_id.clone()
+            };
+            if !client_id.is_empty() {
+                topic_state.seen_ids.insert(client_id, id.clone());
+            }
             topic_state.messages.push(RelayMessage {
                 id: id.clone(),
                 data: message.data,
@@ -569,6 +644,20 @@ impl RelayBackend for MemoryBackend {
                 }
 
                 let message = state.topics.get(&topic_name).unwrap().messages[index].clone();
+                if !sub.spec.filter.is_empty() {
+                    match AttributeFilter::parse(&sub.spec.filter) {
+                        Ok(filter) if !filter.matches(&message.attributes) => {
+                            sub.acked.insert(index);
+                            continue;
+                        }
+                        Err(_) => {
+                            // Invalid stored filter should not stall the subscription.
+                            sub.acked.insert(index);
+                            continue;
+                        }
+                        Ok(_) => {}
+                    }
+                }
                 let ack_id = if sub.spec.enable_exactly_once_delivery {
                     format!("{subscription}:{index}:{current_attempt}")
                 } else {
@@ -928,17 +1017,7 @@ impl RelayBackend for MemoryBackend {
     }
 
     async fn validate_schema(&self, schema: &SchemaSpec) -> Result<(), BackendError> {
-        if schema.definition.trim().is_empty() {
-            return Err(BackendError::InvalidArgument(
-                "schema definition is required".into(),
-            ));
-        }
-        match schema.schema_type.as_str() {
-            "PROTOCOL_BUFFER" | "AVRO" | "UNSPECIFIED" | "" => Ok(()),
-            other => Err(BackendError::InvalidArgument(format!(
-                "unsupported schema type {other}"
-            ))),
-        }
+        schema_validate::validate_definition(schema)
     }
 
     async fn validate_message(
@@ -956,14 +1035,7 @@ impl RelayBackend for MemoryBackend {
                 "schema name or schema body is required".into(),
             ));
         };
-        self.validate_schema(&resolved).await?;
-        if message.is_empty() {
-            return Err(BackendError::InvalidArgument(
-                "message body is required".into(),
-            ));
-        }
-        // Compatibility subset: accept any non-empty payload when schema exists.
-        Ok(())
+        schema_validate::validate_payload(&resolved, "JSON", message)
     }
 
     async fn list_push_subscriptions(&self) -> Result<Vec<SubscriptionSpec>, BackendError> {
@@ -1030,6 +1102,7 @@ impl RelayBackend for MemoryBackend {
                     push_endpoint: sub.spec.push_endpoint.clone(),
                     push_attributes: sub.spec.push_attributes.clone(),
                     dead_letter_topic: sub.spec.dead_letter.as_ref().map(|d| d.topic.clone()),
+                    filter: sub.spec.filter.clone(),
                     topic_message_count: topic_len as u64,
                     next_index: sub.next_index as u64,
                     backlog,
@@ -1057,8 +1130,7 @@ mod tests {
     fn topic(name: &str) -> TopicSpec {
         TopicSpec {
             name: name.into(),
-            labels: HashMap::new(),
-            kms_key_name: String::new(),
+            ..Default::default()
         }
     }
 
@@ -1067,13 +1139,18 @@ mod tests {
             name: name.into(),
             topic: topic.into(),
             ack_deadline_seconds: 10,
-            labels: HashMap::new(),
-            enable_message_ordering: false,
-            enable_exactly_once_delivery: false,
-            dead_letter: None,
-            retry: None,
-            push_endpoint: None,
-            push_attributes: HashMap::new(),
+            ..Default::default()
+        }
+    }
+
+    fn msg(data: &[u8], attributes: &[(&str, &str)]) -> NewMessage {
+        NewMessage {
+            data: data.to_vec(),
+            attributes: attributes
+                .iter()
+                .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+                .collect(),
+            ..Default::default()
         }
     }
 
@@ -1094,6 +1171,7 @@ mod tests {
                     data: b"hello".to_vec(),
                     attributes: HashMap::new(),
                     ordering_key: String::new(),
+                message_id: String::new(),
                 }],
             )
             .await
@@ -1127,6 +1205,7 @@ mod tests {
                     data: b"job".to_vec(),
                     attributes: HashMap::new(),
                     ordering_key: String::new(),
+                message_id: String::new(),
                 }],
             )
             .await
@@ -1157,11 +1236,13 @@ mod tests {
                         data: b"1".to_vec(),
                         attributes: HashMap::new(),
                         ordering_key: "k".into(),
+                    message_id: String::new(),
                     },
                     NewMessage {
                         data: b"2".to_vec(),
                         attributes: HashMap::new(),
                         ordering_key: "k".into(),
+                    message_id: String::new(),
                     },
                 ],
             )
@@ -1197,6 +1278,7 @@ mod tests {
                     data: b"a".to_vec(),
                     attributes: HashMap::new(),
                     ordering_key: String::new(),
+                message_id: String::new(),
                 }],
             )
             .await
@@ -1217,6 +1299,7 @@ mod tests {
                     data: b"b".to_vec(),
                     attributes: HashMap::new(),
                     ordering_key: String::new(),
+                message_id: String::new(),
                 }],
             )
             .await
@@ -1270,6 +1353,7 @@ mod tests {
                     data: b"poison".to_vec(),
                     attributes: HashMap::new(),
                     ordering_key: String::new(),
+                message_id: String::new(),
                 }],
             )
             .await
@@ -1294,6 +1378,7 @@ mod tests {
                     data: b"poison2".to_vec(),
                     attributes: HashMap::new(),
                     ordering_key: String::new(),
+                message_id: String::new(),
                 }],
             )
             .await
@@ -1326,5 +1411,133 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(page2.items.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn subscription_filter_auto_acks_non_matching() {
+        let backend = MemoryBackend::new();
+        let topic_name = "projects/demo/topics/telemetry";
+        let sub_name = "projects/demo/subscriptions/pune-only";
+        backend.create_topic(topic(topic_name)).await.unwrap();
+        let mut sub = subscription(sub_name, topic_name);
+        sub.filter = r#"attributes.site = "pune""#.into();
+        backend.create_subscription(sub).await.unwrap();
+        backend
+            .publish(
+                topic_name,
+                vec![
+                    msg(b"a", &[("site", "mumbai")]),
+                    msg(b"b", &[("site", "pune")]),
+                    msg(b"c", &[("site", "delhi")]),
+                ],
+            )
+            .await
+            .unwrap();
+        let pulled = backend.pull(sub_name, 10).await.unwrap();
+        assert_eq!(pulled.len(), 1);
+        assert_eq!(pulled[0].message.data, b"b");
+        assert!(backend.pull(sub_name, 10).await.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn rejects_invalid_filter() {
+        let backend = MemoryBackend::new();
+        let topic_name = "projects/demo/topics/t";
+        backend.create_topic(topic(topic_name)).await.unwrap();
+        let mut sub = subscription("projects/demo/subscriptions/bad", topic_name);
+        sub.filter = "this is not a filter".into();
+        assert!(backend.create_subscription(sub).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn schema_bound_topic_rejects_invalid_json() {
+        let backend = MemoryBackend::new();
+        let topic_name = "projects/demo/topics/typed";
+        let schema_name = "projects/demo/schemas/evt";
+        backend
+            .create_schema(SchemaSpec {
+                name: schema_name.into(),
+                schema_type: "UNSPECIFIED".into(),
+                definition: r#"{"type":"object","required":["site"]}"#.into(),
+            })
+            .await
+            .unwrap();
+        let mut t = topic(topic_name);
+        t.schema_name = schema_name.into();
+        t.schema_encoding = "JSON".into();
+        backend.create_topic(t).await.unwrap();
+        assert!(backend
+            .publish(topic_name, vec![msg(br#"{"zone":"n"}"#, &[])])
+            .await
+            .is_err());
+        let ids = backend
+            .publish(topic_name, vec![msg(br#"{"site":"pune"}"#, &[])])
+            .await
+            .unwrap();
+        assert_eq!(ids.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn publish_dedups_by_message_id() {
+        let backend = MemoryBackend::new();
+        let topic_name = "projects/demo/topics/dedup";
+        backend.create_topic(topic(topic_name)).await.unwrap();
+        let sub = subscription("projects/demo/subscriptions/dedup-sub", topic_name);
+        backend.create_subscription(sub).await.unwrap();
+        let first = backend
+            .publish(
+                topic_name,
+                vec![NewMessage {
+                    data: b"one".to_vec(),
+                    message_id: "edge-1".into(),
+                    ..Default::default()
+                }],
+            )
+            .await
+            .unwrap();
+        let second = backend
+            .publish(
+                topic_name,
+                vec![NewMessage {
+                    data: b"two".to_vec(),
+                    message_id: "edge-1".into(),
+                    ..Default::default()
+                }],
+            )
+            .await
+            .unwrap();
+        assert_eq!(first, second);
+        assert_eq!(backend.pull("projects/demo/subscriptions/dedup-sub", 10).await.unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn cloudevent_attributes_are_filterable() {
+        let backend = MemoryBackend::new();
+        let topic_name = "projects/demo/topics/irrigation.required";
+        let sub_name = "projects/demo/subscriptions/irrigation-acts";
+        backend.create_topic(topic(topic_name)).await.unwrap();
+        let mut sub = subscription(sub_name, topic_name);
+        sub.filter = r#"attributes.ce-type = "irrigation.required""#.into();
+        backend.create_subscription(sub).await.unwrap();
+        backend
+            .publish(
+                topic_name,
+                vec![NewMessage {
+                    data: br#"{"specversion":"1.0","id":"1","source":"farm","type":"irrigation.required"}"#.to_vec(),
+                    attributes: HashMap::from([(
+                        "content-type".into(),
+                        "application/cloudevents+json".into(),
+                    )]),
+                    ..Default::default()
+                }],
+            )
+            .await
+            .unwrap();
+        let pulled = backend.pull(sub_name, 10).await.unwrap();
+        assert_eq!(pulled.len(), 1);
+        assert_eq!(
+            pulled[0].message.attributes.get("relay.topic").unwrap(),
+            "irrigation.required"
+        );
     }
 }

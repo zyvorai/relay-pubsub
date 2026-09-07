@@ -14,6 +14,7 @@
 | Wire up Relay's real API (`relay-events`) | [Relay events backend](RELAY_EVENTS_BACKEND.md) |
 | Deploy notes (lab template) | [Deployment](DEPLOYMENT.md) |
 | Understand the architecture | [Architecture](ARCHITECTURE.md) |
+| Use attribute filters, schemas, CloudEvents | [Filters & schemas](FILTERS.md) |
 | Integrate with relay-edge simulators | [Integration with relay-edge](#integration-with-relay-edge) |
 | **Stack test results (relay-edge repo)** | [relay-edge TEST_RESULTS](https://github.com/zyvorai/relay-edge/blob/main/docs/TEST_RESULTS.md) |
 | Release history | [Changelog](../CHANGELOG.md) |

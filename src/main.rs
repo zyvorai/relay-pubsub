@@ -104,16 +104,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let _ = backend
                     .create_topic(TopicSpec {
                         name: full,
-                        labels: HashMap::new(),
-                        kms_key_name: String::new(),
+                        ..Default::default()
                     })
                     .await;
             }
             let _ = backend
                 .create_topic(TopicSpec {
                     name: actions_topic.clone(),
-                    labels: HashMap::new(),
-                    kms_key_name: String::new(),
+                    ..Default::default()
                 })
                 .await;
             let _ = backend
@@ -121,13 +119,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     name: actions_subscription.clone(),
                     topic: actions_topic.clone(),
                     ack_deadline_seconds: 30,
-                    labels: HashMap::new(),
-                    enable_message_ordering: false,
-                    enable_exactly_once_delivery: false,
-                    dead_letter: None,
-                    retry: None,
-                    push_endpoint: None,
-                    push_attributes: HashMap::new(),
+                    ..Default::default()
                 })
                 .await;
             Arc::new(backend)

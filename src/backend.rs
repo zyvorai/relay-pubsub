@@ -183,6 +183,7 @@ pub trait RelayBackend: Send + Sync + 'static {
                     push_endpoint: s.push_endpoint,
                     push_attributes: s.push_attributes,
                     dead_letter_topic: s.dead_letter.map(|d| d.topic),
+                    filter: s.filter,
                     topic_message_count: 0,
                     next_index: 0,
                     backlog: 0,

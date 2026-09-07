@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Subscription attribute filters** (Google subset): `attributes:key`, `attributes.key = "v"` / `!=`, `hasPrefix(...)`, `AND` / `OR` / `NOT` / parentheses. Non-matching messages are auto-acknowledged on Pull / StreamingPull / push.
+- **Topic schema settings** (`schemaSettings.schema` + `encoding`) with publish-time enforcement for JSON payloads, including JSON Schema `required` fields.
+- **Publish dedup** via `messageId` or `idempotency_key` attribute (same id returns the original message id and does not enqueue a second copy).
+- **CloudEvents 1.0 projection**: `ce-id` / `ce-source` / `ce-type` / `ce-specversion` / `ce-subject` plus `relay.topic` stamped on publish so filters can match event type without parsing the body.
+- Docs: [Subscription filters](docs/FILTERS.md).
+
+### Notes
+- Filters are immutable after `CreateSubscription` (Google semantics).
+- Multi-replica durable cursors remain a Relay-core item (v0.5 HA).
+
 ## [0.4.0] — 2026-08-29
 
 ### Added

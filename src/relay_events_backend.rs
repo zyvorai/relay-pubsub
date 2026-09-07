@@ -16,10 +16,12 @@
 //! forwarded to Relay's `POST /v1/events` instead of being stored.
 
 use crate::backend::{BackendError, RelayBackend};
+use crate::cloudevents;
 use crate::memory::MemoryBackend;
 use crate::model::{
     Delivery, IamPolicy, NewMessage, Page, SchemaSpec, SnapshotSpec, SubscriptionSpec, TopicSpec,
 };
+use crate::schema_validate;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use reqwest::Client;
@@ -137,7 +139,37 @@ impl RelayEventsBackend {
         full.rsplit('/').next().unwrap_or(full)
     }
 
+    async fn prepare_publish(
+        &self,
+        topic: &str,
+        messages: &mut [NewMessage],
+    ) -> Result<(), BackendError> {
+        let spec = self.inner.get_topic(topic).await.ok();
+        let schema = if let Some(spec) = &spec {
+            if spec.schema_name.is_empty() {
+                None
+            } else {
+                Some((
+                    spec.schema_encoding.clone(),
+                    self.inner.get_schema(&spec.schema_name).await?,
+                ))
+            }
+        } else {
+            None
+        };
+        for message in messages.iter_mut() {
+            cloudevents::enrich_message(topic, message);
+            if let Some((encoding, schema)) = &schema {
+                schema_validate::validate_payload(schema, encoding, &message.data)?;
+            }
+        }
+        Ok(())
+    }
+
     fn idempotency_key(topic: &str, message: &NewMessage) -> String {
+        if !message.message_id.is_empty() {
+            return message.message_id.clone();
+        }
         if let Some(key) = message.attributes.get("idempotency_key") {
             if !key.is_empty() {
                 return key.clone();
@@ -308,19 +340,23 @@ impl RelayBackend for RelayEventsBackend {
     async fn publish(
         &self,
         topic: &str,
-        messages: Vec<NewMessage>,
+        mut messages: Vec<NewMessage>,
     ) -> Result<Vec<String>, BackendError> {
+        self.prepare_publish(topic, &mut messages).await?;
         if topic == self.actions_topic {
             return self.inner.publish(topic, messages).await;
         }
         let short = Self::short_name(topic).to_string();
+        let mut ids = Vec::with_capacity(messages.len());
         for message in &messages {
             self.accept_event(&short, message).await?;
+            ids.push(if message.message_id.is_empty() {
+                Uuid::new_v4().to_string()
+            } else {
+                message.message_id.clone()
+            });
         }
-        Ok(messages
-            .iter()
-            .map(|_| Uuid::new_v4().to_string())
-            .collect())
+        Ok(ids)
     }
 
     async fn pull(
@@ -461,6 +497,7 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v.to_string()))
                 .collect(),
             ordering_key: String::new(),
+        message_id: String::new(),
         }
     }
 
@@ -487,6 +524,8 @@ mod tests {
                 name: topic.clone(),
                 labels: HashMap::new(),
                 kms_key_name: String::new(),
+            schema_name: String::new(),
+            schema_encoding: String::new(),
             })
             .await
             .unwrap();
@@ -526,6 +565,8 @@ mod tests {
                     name: topic.clone(),
                     labels: HashMap::new(),
                     kms_key_name: String::new(),
+                schema_name: String::new(),
+                schema_encoding: String::new(),
                 })
                 .await;
             backend
@@ -547,6 +588,8 @@ mod tests {
                 name: actions.clone(),
                 labels: HashMap::new(),
                 kms_key_name: String::new(),
+            schema_name: String::new(),
+            schema_encoding: String::new(),
             })
             .await
             .unwrap();
@@ -562,6 +605,7 @@ mod tests {
                 retry: None,
                 push_endpoint: None,
                 push_attributes: HashMap::new(),
+            filter: String::new(),
             })
             .await
             .unwrap();
@@ -598,6 +642,8 @@ mod tests {
                 name: topic.into(),
                 labels: HashMap::new(),
                 kms_key_name: String::new(),
+            schema_name: String::new(),
+            schema_encoding: String::new(),
             })
             .await;
         let m = msg(br#"{"x":1}"#, &[("source", "s"), ("severity", "info")]);
@@ -631,6 +677,8 @@ mod tests {
                 name: topic.into(),
                 labels: HashMap::new(),
                 kms_key_name: String::new(),
+            schema_name: String::new(),
+            schema_encoding: String::new(),
             })
             .await;
         backend

@@ -66,6 +66,7 @@ docker run --rm -p 8080:8080 -p 50051:50051 \
 | [⚡ Relay events backend](docs/RELAY_EVENTS_BACKEND.md) | Production backend, catalogs, actions |
 | [🚢 Deployment](docs/DEPLOYMENT.md) | Lab notes, systemd + k8s detail |
 | [🏗 Architecture](docs/ARCHITECTURE.md) | Boundaries, HA, tenant model |
+| [🔎 Filters & schemas](docs/FILTERS.md) | Attribute filters, schema publish, CloudEvents |
 | [📝 Changelog](CHANGELOG.md) | Release notes |
 | [📜 Native API (legacy)](docs/relay-native-api.md) | Invented `http` backend contract |
 
@@ -98,7 +99,7 @@ cargo run
 
 **REST:** Matching `/v1/projects/...` admin + data plane, including pagination (`pageSize` / `pageToken`), PATCH updates, snapshots, schemas, IAM.
 
-**Semantics (memory / relay-events local store):** explicit ACK, NACK via zero deadline, DLQ after max attempts, ordering keys, exactly-once ack leases, retry backoff, timestamp + snapshot seek, push dispatcher, optional durable JSON state (`PUBSUB_PERSIST`), Prometheus metrics.
+**Semantics (memory / relay-events local store):** explicit ACK, NACK via zero deadline, DLQ after max attempts, ordering keys, exactly-once ack leases, retry backoff, timestamp + snapshot seek, push dispatcher, optional durable JSON state (`PUBSUB_PERSIST`), Prometheus metrics, attribute filters, schema-bound publish, messageId dedup, CloudEvents attribute projection.
 
 **Ops:** `/admin/v1/inventory`, `/admin/v1/logs`, `/admin/v1/push-config`, product console (Incoming / Outgoing / Stored / Logs).
 
