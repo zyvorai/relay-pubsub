@@ -31,7 +31,7 @@ Shell scripts: shebang line first, then copyright/SPDX lines.
 | `src/*.rs`, `build.rs`, scripts, `ui/src/*` | Markdown docs |
 | Ops console under `ui/` | `target/`, `node_modules/` |
 
-Full license: [LICENSE](../LICENSE).
+Full license: [LICENSE](https://github.com/zyvorai/relay-pubsub/blob/main/LICENSE).
 
 ---
 

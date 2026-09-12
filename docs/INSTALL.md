@@ -50,7 +50,7 @@ cargo build --release --locked
 ./target/release/relay-pubsub --backend memory
 ```
 
-See [`.env.example`](../.env.example).
+See [`.env.example`](https://github.com/zyvorai/relay-pubsub/blob/main/.env.example).
 
 ---
 

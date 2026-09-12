@@ -6,3 +6,6 @@
 /.claude
 
 .docs-tools/
+
+/.venv-docs
+/site

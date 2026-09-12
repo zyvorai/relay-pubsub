@@ -1,0 +1,72 @@
+site_name: relay-pubsub
+site_description: Google Pub/Sub APIs in. Relay events out. A TLS-only protocol-compatibility gateway in front of Zyvor Relay.
+site_url: https://zyvorai.github.io/relay-pubsub/
+repo_url: https://github.com/zyvorai/relay-pubsub
+repo_name: zyvorai/relay-pubsub
+edit_uri: edit/main/docs/
+docs_dir: docs
+site_dir: site
+theme:
+  name: material
+  logo: material/transit-connection-variant
+  favicon: material/transit-connection-variant
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep orange
+      accent: orange
+      toggle: {icon: material/brightness-7, name: Switch to dark mode}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep orange
+      accent: orange
+      toggle: {icon: material/brightness-4, name: Switch to light mode}
+  features: [navigation.tabs, navigation.sections, navigation.top, navigation.footer, content.code.copy, search.suggest, search.highlight, toc.follow]
+plugins: [search]
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed: {alternate_style: true}
+  - pymdownx.tasklist: {custom_checkbox: true}
+  - tables
+  - toc: {permalink: true}
+nav:
+  - Home: README.md
+  - Getting started: GETTING_STARTED.md
+  - Installation: INSTALL.md
+  - Testing: TESTING.md
+  - Architecture: ARCHITECTURE.md
+  - Relay events backend: RELAY_EVENTS_BACKEND.md
+  - Deployment: DEPLOYMENT.md
+  - Filters & schemas: FILTERS.md
+  - Relay native API: relay-native-api.md
+  - FAQ: FAQ.md
+  - License headers: LICENSE_HEADERS.md
+  - User guide:
+      - Overview: user/README.md
+      - Getting started: user/getting-started.md
+      - Using the dashboard: user/using-the-dashboard.md
+      - Admin basics: user/admin-basics.md
+      - Workflows: user/workflows.md
+      - Page index: user/PAGE_INDEX.md
+      - Printable PDFs index: user/pdf/PDF_INDEX.md
+      - Page-by-page guides:
+          - Overview: user/pages/README.md
+          - Configure: user/pages/guides/configure.md
+          - Live demo: user/pages/guides/demo.md
+          - Generate: user/pages/guides/generate.md
+          - Incoming: user/pages/guides/incoming.md
+          - Logs: user/pages/guides/logs.md
+          - Outgoing: user/pages/guides/outgoing.md
+          - Stored: user/pages/guides/stored.md
+          - Tests: user/pages/guides/tests.md
+extra:
+  social:
+    - {icon: fontawesome/brands/github, link: https://github.com/zyvorai/relay-pubsub}

@@ -13,7 +13,7 @@ Track your own instances in ops notes — do not commit live hostnames or IPs to
 | Host | User | HTTP | gRPC | Backend | Notes |
 |---|---|---|---|---|---|
 | `<host>` | `<user>` | `8081` (HTTPS) | `50061` (gRPCS) | `relay-events` | **systemd** on host. Self-signed cert at `/var/lib/relay-pubsub/tls/`. `RELAY_BASE_URL=https://127.0.0.1:8443`, `RELAY_TLS_INSECURE=1`. Pre-registers **40** topic names (farm + edge + remote-edge + fleet catalogs). JWT must match relay-edge. |
-| `<host>` | `<user>` | `8082` (HTTPS) | — | n/a | Product console + demo/tests — [Ops console + product demo](#ops-console--product-demo) |
+| `<host>` | `<user>` | `8082` (HTTPS) | — | n/a | Product console + demo/tests — [Ops console + product demo](#ops-console-product-demo) |
 | `<host>` | `<user>` | `8080` (HTTPS, in-cluster) | `50051` (gRPCS) | `relay-events` | **k8s** pod in namespace `relay-pubsub`. Deployed via relay-edge `deploy/scripts/deploy-k8s-remote.sh`. Reaches host Relay at `https://<host>:8443`. |
 
 Manage **systemd** gateway:
@@ -74,7 +74,7 @@ Full install + test docs: [INSTALL.md](INSTALL.md) · [TESTING.md](TESTING.md).
 
 1. [Bare Linux host via systemd](#1-bare-linux-host-via-systemd) — `scripts/deploy-remote.sh`
 2. [Kubernetes pods](#2-kubernetes-pods) — Helm chart, k3s, or **relay-edge stack deploy**
-3. [relay-pubsub + relay-edge stack](#relay-pubsub--relay-edge-stack) — full integration path
+3. [relay-pubsub + relay-edge stack](#relay-pubsub-relay-edge-stack) — full integration path
 
 Also: [Installation](INSTALL.md) (GHCR pull, Docker run) and [Testing](TESTING.md) (acceptance checklist).
 

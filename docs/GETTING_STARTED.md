@@ -135,6 +135,6 @@ Peers may be remote — the console proxies to `GATEWAY_UPSTREAM` set at deploy 
 | Install (systemd / k8s / GHCR) | [Installation](INSTALL.md) |
 | Verify with smokes + console | [Testing](TESTING.md) |
 | Deploy to production host | [Deployment](DEPLOYMENT.md) |
-| Kubernetes + relay-edge stack | [Deployment § k8s stack](DEPLOYMENT.md#relay-pubsub--relay-edge-stack) |
+| Kubernetes + relay-edge stack | [Deployment § k8s stack](DEPLOYMENT.md#relay-pubsub-relay-edge-stack) |
 | Action Gateway wiring | [Relay events backend](RELAY_EVENTS_BACKEND.md) |
 | Architecture deep dive | [Architecture](ARCHITECTURE.md) |

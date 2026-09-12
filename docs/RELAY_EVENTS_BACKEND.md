@@ -6,7 +6,7 @@ The production path: Pub/Sub topic publish → Relay `POST /v1/events`, plus Act
 
 ---
 
-`--backend relay-events` (`RELAY_BACKEND=relay-events`) targets Zyvor Relay's real API. Implementation: [`src/relay_events_backend.rs`](../src/relay_events_backend.rs) + [`src/action_gateway.rs`](../src/action_gateway.rs).
+`--backend relay-events` (`RELAY_BACKEND=relay-events`) targets Zyvor Relay's real API. Implementation: [`src/relay_events_backend.rs`](https://github.com/zyvorai/relay-pubsub/blob/main/src/relay_events_backend.rs) + [`src/action_gateway.rs`](https://github.com/zyvorai/relay-pubsub/blob/main/src/action_gateway.rs).
 
 ## Topic = event type
 - **Pre-registered catalogs** in `src/config.rs` (admin UI visibility only — publish works for any non-actions topic):

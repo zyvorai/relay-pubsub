@@ -17,7 +17,7 @@
 | Use attribute filters, schemas, CloudEvents | [Filters & schemas](FILTERS.md) |
 | Integrate with relay-edge simulators | [Integration with relay-edge](#integration-with-relay-edge) |
 | **Stack test results (relay-edge repo)** | [relay-edge TEST_RESULTS](https://github.com/zyvorai/relay-edge/blob/main/docs/TEST_RESULTS.md) |
-| Release history | [Changelog](../CHANGELOG.md) |
+| Release history | [Changelog](https://github.com/zyvorai/relay-pubsub/blob/main/CHANGELOG.md) |
 | SPDX headers on source | [License headers](LICENSE_HEADERS.md) |
 
 ---
@@ -73,7 +73,7 @@ Publishing to any other topic name still works — catalog is for admin UI visib
 
 ## Ops console
 
-Product UI (Incoming / Outgoing / Stored / Configure / Logs) on a separate systemd unit — [Installation § Console](INSTALL.md#5-ops-console) and [Testing § Console](TESTING.md#7-ops-console-browser).
+Product UI (Incoming / Outgoing / Stored / Configure / Logs) on a separate systemd unit — [Installation § Console](INSTALL.md#ops-console-panes) and [Testing § Console](TESTING.md#7-ops-console-browser).
 
 Admin helpers: `GET /admin/v1/inventory`, `GET /admin/v1/logs`, `POST /admin/v1/push-config`.
 
