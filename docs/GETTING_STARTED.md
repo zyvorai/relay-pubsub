@@ -1,4 +1,8 @@
-# Getting started
+---
+hero:
+  eyebrow: GETTING STARTED
+  title: Getting started
+---
 
 From zero to a working publish/pull round-trip in minutes.
 

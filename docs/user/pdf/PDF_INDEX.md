@@ -1,4 +1,8 @@
-# relay-pubsub user PDFs
+---
+hero:
+  eyebrow: USER GUIDE
+  title: relay-pubsub user PDFs
+---
 
 Generated: 2026-08-29
 

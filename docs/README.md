@@ -1,6 +1,32 @@
-# relay-pubsub documentation
-
-**Google Pub/Sub APIs in. Relay events out.** · **v0.4.0**
+---
+hero:
+  eyebrow: PUB/SUB COMPATIBILITY GATEWAY
+  title: relay-pubsub
+  lead: >-
+    Google Pub/Sub APIs in. Relay events out. Speak familiar Pub/Sub gRPC
+    and REST while the gateway handles translation, TLS, and metrics in
+    front of Zyvor Relay's real event system.
+  swatches:
+    - {label: "v0.4.0"}
+    - {label: "TLS-only"}
+    - {label: "Apache-2.0"}
+  highlights:
+    - {value: "v0.4.0", label: "Current release — client conformance matrix, Helm console + PVC", footnote: "1"}
+    - {value: "40", label: "Relay event types pre-registered across 4 catalogs at startup", footnote: "2"}
+    - {value: "3", label: "Pluggable backends — memory, http (legacy), relay-events (production)", footnote: "3"}
+    - {value: "0", label: "Reverse proxies needed — both gRPC and REST terminate TLS natively", footnote: "4"}
+  hub_bands:
+    - {icon: "🚀", title: "Getting started", description: "From zero to a working publish/pull round-trip in minutes.", href: "GETTING_STARTED.md"}
+    - {icon: "📦", title: "Installation", description: "Install relay-pubsub from source, Docker/GHCR, systemd, or Kubernetes.", href: "INSTALL.md"}
+    - {icon: "🏗", title: "Architecture", description: "How relay-pubsub stays separate from Relay core — and where relay-edge fits.", href: "ARCHITECTURE.md"}
+    - {icon: "🔎", title: "Filters & schemas", description: "Attribute filters, topic schema enforcement, and CloudEvents attribute projection.", href: "FILTERS.md"}
+    - {icon: "❓", title: "FAQ", description: "Questions people evaluating relay-pubsub actually ask, before they've decided to adopt it.", href: "FAQ.md"}
+footnotes:
+  - {marker: "1", text: "v0.4.0 added the client conformance matrix (REST + Python/Node/Go) and Helm console + PVC.", href: "ARCHITECTURE.md#compatibility-roadmap", href_label: "See Architecture — Compatibility roadmap."}
+  - {marker: "2", text: "40 topics pre-registered across 4 catalogs: Farm (10), Edge/firewater (18), Remote edge (6), Fleet (6). Publishing to any other topic still works.", href: "README.md#event-catalogs-relay-events", href_label: "See Event catalogs."}
+  - {marker: "3", text: "memory (demos/CI, no Relay needed), http (legacy invented API), and relay-events (production, Relay's real /v1/events API).", href: "README.md#what-this-gateway-does", href_label: "See What this gateway does."}
+  - {marker: "4", text: "Both gRPC and REST listeners are TLS-only; the gateway generates and reuses a self-signed certificate on first start.", href: "README.md#tls-built-in", href_label: "See TLS built in."}
+---
 
 ---
 
@@ -34,13 +60,16 @@ Applications speak **Google Pub/Sub** (gRPC or REST). The gateway translates to 
                            relay-events)            ← POST /v1/actions
 ```
 
-Three backends:
+<div class="compare-cards" markdown="1">
 
-| Backend | When to use |
-|---------|-------------|
-| `memory` | Demos, CI, k3s smoke, offline edge — no Relay needed |
-| `http` | Legacy invented topics API — rarely needed |
-| **`relay-events`** | **Production** — Relay's real `/v1/events` API |
+- **`memory`**
+  Demos, CI, k3s smoke, offline edge — no Relay needed.
+- **`http`**
+  Legacy invented topics API — rarely needed, prefer `relay-events`.
+- **`relay-events`**
+  **Production** — Relay's real `/v1/events` API.
+
+</div>
 
 Runs as **Docker**, **systemd**, or **Kubernetes** — see [Installation](INSTALL.md).
 

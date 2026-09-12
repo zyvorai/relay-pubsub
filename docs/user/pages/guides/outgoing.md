@@ -1,4 +1,8 @@
-# Outgoing
+---
+hero:
+  eyebrow: USER GUIDE
+  title: Outgoing
+---
 
 ## Purpose
 

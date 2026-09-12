@@ -1,4 +1,8 @@
-# Deploying relay-pubsub
+---
+hero:
+  eyebrow: DEPLOYMENT
+  title: Deploying relay-pubsub
+---
 
 How to run the gateway on a laptop, Linux host, or in Kubernetes — alone or with relay-edge.
 

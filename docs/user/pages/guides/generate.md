@@ -1,4 +1,8 @@
-# Generate
+---
+hero:
+  eyebrow: USER GUIDE
+  title: Generate
+---
 
 ## Purpose
 

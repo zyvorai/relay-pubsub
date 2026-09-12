@@ -1,6 +1,16 @@
-# Architecture
-
-How relay-pubsub stays separate from Relay core — and where relay-edge fits.
+---
+hero:
+  eyebrow: ARCHITECTURE
+  title: Architecture
+  lead: >-
+    relay-pubsub owns protocol compatibility. Relay owns the durable event
+    system. Here's how the boundary holds — and where relay-edge fits.
+  highlights:
+    - {value: "5", label: "Authenticated request steps from external caller to a scoped Relay identity"}
+    - {value: "4", label: "Compatibility milestones already shipped — v0.1 through v0.4"}
+    - {value: "2+", label: "Stateless gateway replicas recommended behind an HTTP/2-capable load balancer"}
+    - {value: "v0.5", label: "Next milestone — multi-replica durable cursors move into Relay core"}
+---
 
 ← [Docs hub](README.md)
 
@@ -18,21 +28,35 @@ How relay-pubsub stays separate from Relay core — and where relay-edge fits.
 +-------------------+      +--------------------+      +-------------------+
 ```
 
-## Why a backend trait
+## Take a closer look
 
-`RelayBackend` prevents Google-specific request types from entering Relay core. The gRPC and REST adapters translate external API objects into `TopicSpec`, `SubscriptionSpec`, `NewMessage` and `Delivery`.
+=== "Why a backend trait"
 
-The memory implementation makes conformance testing deterministic. The HTTP implementation is the production bridge. A future native gRPC Relay backend can implement the same trait without changing the Pub/Sub surface.
+    `RelayBackend` prevents Google-specific request types from entering Relay core. The gRPC and REST adapters translate external API objects into `TopicSpec`, `SubscriptionSpec`, `NewMessage` and `Delivery`.
 
-## HA model
+    The memory implementation makes conformance testing deterministic. The HTTP implementation is the production bridge. A future native gRPC Relay backend can implement the same trait without changing the Pub/Sub surface.
 
-Compatibility gateways should be stateless. Run 2+ replicas behind an HTTP/2-capable load balancer. ACK IDs, cursors and exactly-once state must be durable in Relay, not process memory. The included memory backend is therefore only for tests/demos.
+=== "HA model"
 
-Each gateway process terminates its own TLS (gRPCS/HTTPS). In Kubernetes, mount a shared TLS secret or accept per-pod self-signed certs (current Helm default uses `emptyDir` — fine for single-replica lab stacks).
+    Compatibility gateways should be stateless. Run 2+ replicas behind an HTTP/2-capable load balancer. ACK IDs, cursors and exactly-once state must be durable in Relay, not process memory. The included memory backend is therefore only for tests/demos.
 
-Local topic/subscription/action-queue state can be persisted to `PUBSUB_DATA_DIR/state.json` (`PUBSUB_PERSIST=1`, default on). That survives process restart on a single replica; multi-replica HA still requires sticky routing or durable state in Relay core.
+    Each gateway process terminates its own TLS (gRPCS/HTTPS). In Kubernetes, mount a shared TLS secret or accept per-pod self-signed certs (current Helm default uses `emptyDir` — fine for single-replica lab stacks).
 
-**relay-edge** follows the same pattern: optional `EDGE_TLS=1` with self-signed cert in `internal/tlsutil`, deployed alongside relay-pubsub via relay-edge `deploy/scripts/deploy-k8s-remote.sh`.
+    Local topic/subscription/action-queue state can be persisted to `PUBSUB_DATA_DIR/state.json` (`PUBSUB_PERSIST=1`, default on). That survives process restart on a single replica; multi-replica HA still requires sticky routing or durable state in Relay core.
+
+    **relay-edge** follows the same pattern: optional `EDGE_TLS=1` with self-signed cert in `internal/tlsutil`, deployed alongside relay-pubsub via relay-edge `deploy/scripts/deploy-k8s-remote.sh`.
+
+=== "Tenant model"
+
+    External Pub/Sub resource names contain `projects/<project>`, but that string is not authorization. Production flow:
+
+    1. authenticate caller — static bearer (`RELAY_PUBSUB_AUTH_TOKEN`) and/or OIDC JWT (`PUBSUB_OIDC_JWKS_URL` + audience/issuer);
+    2. map identity to allowed projects (`PUBSUB_ALLOWED_PROJECTS`, `PUBSUB_IDENTITY_PROJECT_MAP`);
+    3. authorize each resource operation against that allowlist;
+    4. map the external Google-style project name to the internal Relay namespace;
+    5. call Relay using a scoped service identity (`RELAY_AUTH_TOKEN`).
+
+    mTLS / workload-identity passthrough can sit in front of the gateway; the gateway itself validates Bearer credentials today.
 
 ## Integration stack
 
@@ -47,18 +71,6 @@ Zyvor Relay (Accept → Act via POST /v1/actions → gateway)
 ```
 
 See relay-edge [Event matrix](https://github.com/zyvorai/relay-edge/blob/main/docs/EVENT_MATRIX.md) for the full cross-family test gate.
-
-## Tenant model
-
-External Pub/Sub resource names contain `projects/<project>`, but that string is not authorization. Production flow:
-
-1. authenticate caller — static bearer (`RELAY_PUBSUB_AUTH_TOKEN`) and/or OIDC JWT (`PUBSUB_OIDC_JWKS_URL` + audience/issuer);
-2. map identity to allowed projects (`PUBSUB_ALLOWED_PROJECTS`, `PUBSUB_IDENTITY_PROJECT_MAP`);
-3. authorize each resource operation against that allowlist;
-4. map the external Google-style project name to the internal Relay namespace;
-5. call Relay using a scoped service identity (`RELAY_AUTH_TOKEN`).
-
-mTLS / workload-identity passthrough can sit in front of the gateway; the gateway itself validates Bearer credentials today.
 
 ## Compatibility roadmap
 

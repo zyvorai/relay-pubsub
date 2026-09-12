@@ -1,4 +1,8 @@
-# Stored
+---
+hero:
+  eyebrow: USER GUIDE
+  title: Stored
+---
 
 ## Purpose
 

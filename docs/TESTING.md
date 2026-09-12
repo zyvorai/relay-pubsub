@@ -1,4 +1,8 @@
-# Testing
+---
+hero:
+  eyebrow: TESTING
+  title: Testing
+---
 
 How to verify a relay-pubsub install — local, systemd, Kubernetes, and the ops console.
 

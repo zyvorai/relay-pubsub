@@ -1,4 +1,8 @@
-# Relay native API contract used by `relay-pubsub`
+---
+hero:
+  eyebrow: RELAY NATIVE API
+  title: Relay native API contract used by `relay-pubsub`
+---
 
 `relay-pubsub` is a compatibility component. In production it does not own durable storage; it translates Google Pub/Sub semantics into this small Relay-native HTTP contract.
 

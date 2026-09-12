@@ -1,4 +1,8 @@
-# Incoming
+---
+hero:
+  eyebrow: USER GUIDE
+  title: Incoming
+---
 
 ## Purpose
 

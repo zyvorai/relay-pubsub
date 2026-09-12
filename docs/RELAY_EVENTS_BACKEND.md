@@ -1,4 +1,8 @@
-# Relay events backend
+---
+hero:
+  eyebrow: RELAY EVENTS BACKEND
+  title: Relay events backend
+---
 
 The production path: Pub/Sub topic publish → Relay `POST /v1/events`, plus Action Gateway for outbound acts.
 

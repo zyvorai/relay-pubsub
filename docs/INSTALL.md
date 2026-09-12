@@ -1,4 +1,8 @@
-# Installation
+---
+hero:
+  eyebrow: INSTALL
+  title: Installation
+---
 
 Install relay-pubsub from source, Docker/GHCR, systemd, or Kubernetes.
 

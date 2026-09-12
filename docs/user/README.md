@@ -1,4 +1,8 @@
-# relay-pubsub — User Documentation
+---
+hero:
+  eyebrow: USER GUIDE
+  title: relay-pubsub — User Documentation
+---
 
 **relay-pubsub** is the Google Pub/Sub–compatible gateway for Zyvor Relay, plus an ops console on `:8082`.
 

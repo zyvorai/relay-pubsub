@@ -1,4 +1,8 @@
-# Live demo
+---
+hero:
+  eyebrow: USER GUIDE
+  title: Live demo
+---
 
 ## Purpose
 

@@ -1,4 +1,8 @@
-# Subscription filters, schemas, and CloudEvents
+---
+hero:
+  eyebrow: FILTERS
+  title: Subscription filters, schemas, and CloudEvents
+---
 
 ← [Docs hub](README.md)
 

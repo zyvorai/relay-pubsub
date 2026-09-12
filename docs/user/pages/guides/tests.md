@@ -1,4 +1,8 @@
-# Tests
+---
+hero:
+  eyebrow: USER GUIDE
+  title: Tests
+---
 
 ## Purpose
 

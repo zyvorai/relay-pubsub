@@ -1,4 +1,8 @@
-# Getting started — relay-pubsub
+---
+hero:
+  eyebrow: USER GUIDE
+  title: Getting started — relay-pubsub
+---
 
 ## Purpose
 

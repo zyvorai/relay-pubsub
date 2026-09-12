@@ -1,4 +1,8 @@
-# Logs
+---
+hero:
+  eyebrow: USER GUIDE
+  title: Logs
+---
 
 ## Purpose
 

@@ -1,4 +1,8 @@
-# relay-pubsub — Complete page index
+---
+hero:
+  eyebrow: USER GUIDE
+  title: relay-pubsub — Complete page index
+---
 
 Every primary navigable dashboard route.
 
