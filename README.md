@@ -32,6 +32,32 @@ Pair with **[relay-edge](https://github.com/zyvorai/relay-edge)** for stamped fa
 
 Runs on **edge Linux (systemd)**, **Kubernetes / k3s**, or **Docker**.
 
+## Is this for you?
+
+relay-pubsub is a narrow, open-source (Apache-2.0) **protocol compatibility
+gateway** — it exists purely so Google Pub/Sub SDKs/tooling can talk to
+Zyvor Relay's event-lifecycle API. It is not a general message broker
+(not a NATS/RabbitMQ/Kafka replacement) and not a standalone product —
+the `relay-events` production backend requires Relay itself to be running;
+only the `memory` backend works standalone, for demos/CI.
+
+If you're evaluating this against the real Google Cloud Pub/Sub service or
+its official emulator: relay-pubsub implements the same gRPC/REST surface
+(topics/subscriptions, Publish, Pull, StreamingPull, Ack, Seek, Snapshots,
+IAM subset, SchemaService) but routes messages into Relay's durable event
+system, not Google's infrastructure — use it when you want Pub/Sub-shaped
+client code talking to a self-hosted, offline-capable edge stack instead.
+
+**Maturity, stated honestly**: current release is v0.4.0. The README's own
+"Production boundary" section states this gateway "targets Google Pub/Sub
+compatibility through v0.3... Multi-replica durable cursors still belong
+in Relay core" — i.e. HA/durability guarantees beyond a single replica are
+not yet a property of this gateway itself.
+
+New here? [`docs/FAQ.md`](docs/FAQ.md) covers licensing, support, and
+scope questions. Troubleshooting lives in
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md#troubleshooting).
+
 ---
 
 ## Quick start
@@ -59,6 +85,7 @@ docker run --rm -p 8080:8080 -p 50051:50051 \
 
 | Guide | What's inside |
 |-------|---------------|
+| [❓ FAQ](docs/FAQ.md) | Licensing, support, scope questions |
 | [📖 Docs hub](docs/README.md) | Index of everything |
 | [📦 Installation](docs/INSTALL.md) | Docker, GHCR, Cargo, **systemd**, **Kubernetes**, console |
 | [🧪 Testing](docs/TESTING.md) | Smoke, conformance, Relay, console, release checklist |
