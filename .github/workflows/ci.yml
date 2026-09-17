@@ -1,7 +1,13 @@
 name: ci
+
 on:
   push:
+    branches: [main]
   pull_request:
+
+permissions:
+  contents: read
+
 jobs:
   rust:
     runs-on: ubuntu-latest
@@ -12,6 +18,18 @@ jobs:
       - run: cargo fmt --all -- --check
       - run: cargo clippy --all-targets --all-features -- -D warnings
       - run: cargo test --all
+
+  cargo-audit:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: cargo audit
+        run: |
+          cargo install cargo-audit --locked
+          cargo audit
+
   ui:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: ui } }
@@ -21,6 +39,7 @@ jobs:
         with: { node-version: 22 }
       - run: npm install
       - run: npm run build
+
   matrix:
     runs-on: ubuntu-latest
     steps:
@@ -48,6 +67,11 @@ jobs:
             curl -sk https://127.0.0.1:8080/healthz | grep -q ok && break
             sleep 1
           done
-      - run: BASE=https://127.0.0.1:8080 bash scripts/client-matrix.sh
+      - name: Client matrix + smoke scripts
+        run: |
+          chmod +x scripts/*.sh
+          BASE=https://127.0.0.1:8080 bash scripts/client-matrix.sh
+          BASE=https://127.0.0.1:8080 bash scripts/smoke.sh
+          BASE=https://127.0.0.1:8080 bash scripts/conformance-smoke.sh
       - if: always()
         run: kill "$(cat /tmp/rp.pid)" 2>/dev/null || true
