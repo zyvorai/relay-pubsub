@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- **Native gRPC Relay backend scaffold** (`--backend grpc` / `RELAY_BACKEND=grpc`, `src/grpc_backend.rs`): selectable stub implementing `RelayBackend`; data-plane methods return a clear "not fully implemented" until a Relay gRPC proto exists in-repo. Optional HTTP `/healthz` probe against `RELAY_BASE_URL` for readiness while the gRPC path is unfinished.
 - **Subscription attribute filters** (Google subset): `attributes:key`, `attributes.key = "v"` / `!=`, `hasPrefix(...)`, `AND` / `OR` / `NOT` / parentheses. Non-matching messages are auto-acknowledged on Pull / StreamingPull / push.
 - **Topic schema settings** (`schemaSettings.schema` + `encoding`) with publish-time enforcement for JSON payloads, including JSON Schema `required` fields.
 - **Publish dedup** via `messageId` or `idempotency_key` attribute (same id returns the original message id and does not enqueue a second copy).
