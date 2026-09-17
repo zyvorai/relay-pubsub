@@ -10,6 +10,7 @@ pub mod cloudevents;
 pub mod config;
 pub mod filter;
 pub mod grpc;
+pub mod grpc_backend;
 pub mod http_backend;
 pub mod log_buffer;
 pub mod memory;

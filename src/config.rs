@@ -13,6 +13,10 @@ pub enum BackendKind {
     /// contract) instead of Http's invented topics/subscriptions REST
     /// contract. See docs/RELAY_EVENTS_BACKEND.md.
     RelayEvents,
+    /// Scaffold for a future native gRPC Relay client (`src/grpc_backend.rs`).
+    /// Compiles and starts, but data-plane calls return "not fully implemented"
+    /// until a Relay gRPC proto lands in-repo. Prefer `relay-events` in production.
+    Grpc,
 }
 
 /// Fixed Fasal event catalog (docs/FASAL_ACCOMMODATION.md #4.1/#4.2 in the

@@ -34,7 +34,16 @@ hero:
 
     `RelayBackend` prevents Google-specific request types from entering Relay core. The gRPC and REST adapters translate external API objects into `TopicSpec`, `SubscriptionSpec`, `NewMessage` and `Delivery`.
 
-    The memory implementation makes conformance testing deterministic. The HTTP implementation is the production bridge. A future native gRPC Relay backend can implement the same trait without changing the Pub/Sub surface.
+    Implementations today:
+
+    | `--backend` / `RELAY_BACKEND` | Role |
+    |---|---|
+    | `memory` | Deterministic conformance / demos |
+    | `http` | Legacy invented Relay topics REST |
+    | `relay-events` | Production — Relay `POST /v1/events` + Action Gateway |
+    | `grpc` | Scaffold (`src/grpc_backend.rs`) — compiles; data plane returns "not fully implemented" until a Relay gRPC proto exists in-repo |
+
+    Prefer `relay-events` for production. The `grpc` stub keeps the trait boundary ready so a tonic Relay client can land without changing the Pub/Sub surface.
 
 === "HA model"
 
@@ -78,6 +87,6 @@ See relay-edge [Event matrix](https://github.com/zyvorai/relay-edge/blob/main/do
 - ~~v0.2: official proto expansion, push dispatcher, snapshots, pagination, update APIs~~
 - ~~v0.3: schema service, IAM compatibility subset, exactly-once + ordering + retry backoff, push dispatcher, admin inventory/logs, product console~~
 - ~~v0.4: client conformance matrix (REST + Python/Node/Go), Helm console + PVC~~
-- Unreleased (gateway): subscription attribute filters, topic schema enforcement, publish dedup, CloudEvents attribute projection — see [FILTERS.md](FILTERS.md)
+- Unreleased (gateway): subscription attribute filters, topic schema enforcement, publish dedup, CloudEvents attribute projection — see [FILTERS.md](FILTERS.md); native gRPC Relay backend scaffold (`RELAY_BACKEND=grpc`) pending Relay proto
 - v0.5: multi-replica durable cursors in Relay core; broader official SDK TLS matrix
 - Ongoing: durable ACK/cursors in Relay core (gateway persists local queue to disk today via `PUBSUB_DATA_DIR`)

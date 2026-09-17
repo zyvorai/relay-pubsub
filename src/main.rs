@@ -14,6 +14,7 @@ use relay_pubsub::{
         subscriber_server::SubscriberServer,
     },
     grpc::GatewayService,
+    grpc_backend::GrpcRelayBackend,
     http_backend::HttpRelayBackend,
     log_buffer::{BufferLayer, LogBuffer},
     memory::MemoryBackend,
@@ -24,7 +25,6 @@ use relay_pubsub::{
     rest::{router, HttpState},
     tls::load_or_generate_self_signed,
 };
-use std::collections::HashMap;
 use std::{sync::Arc, time::Duration};
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 use tracing::info;
@@ -123,6 +123,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 })
                 .await;
             Arc::new(backend)
+        }
+        BackendKind::Grpc => {
+            info!(
+                base_url = %config.relay_base_url,
+                "using native gRPC Relay backend scaffold (data plane not fully implemented)"
+            );
+            Arc::new(GrpcRelayBackend::new(
+                config.relay_base_url.clone(),
+                config.relay_auth_token.clone(),
+                Duration::from_secs(config.relay_http_timeout_seconds),
+            )?)
         }
     };
 
