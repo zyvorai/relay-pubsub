@@ -1,19 +1,31 @@
 # Copyright 2026 Zyvor AI Labs · https://zyvor.dev
 # SPDX-License-Identifier: Apache-2.0
-.PHONY: run test fmt check ui compose smoke conformance selftest \
-	deploy-remote deploy-remote-quick deploy-remote-preflight deploy-remote-verify deploy-remote-uninstall deploy-remote-fleet
+.PHONY: run test fmt fmt-check check build ui compose smoke conformance selftest \
+	deploy-remote deploy-remote-quick deploy-remote-preflight deploy-remote-verify deploy-remote-uninstall deploy-remote-fleet \
+	help ci
 
-run:
+run: ## Run with the in-memory backend
 	cargo run -- --backend memory
 
-test:
+test: ## All tests
 	cargo test --all
 
-fmt:
+fmt: ## Format Rust sources
 	cargo fmt --all
 
-check:
+fmt-check: ## Fail if rustfmt would change sources
+	cargo fmt --all -- --check
+
+check: ## Clippy, all features, warnings denied
 	cargo clippy --all-targets --all-features -- -D warnings
+
+build: ## Release binary
+	cargo build --release
+
+ci: fmt-check check test build ## Local gate: rustfmt, clippy, tests, release build
+
+help: ## Show targets
+	@grep -E '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | sort | awk -F':.*## ' '{printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2}'
 
 ui:
 	cd ui && npm install && npm run dev
@@ -30,7 +42,7 @@ conformance:
 selftest:
 	bash scripts/selftest.sh
 
-deploy-remote:
+deploy-remote: ## Deploy: make deploy-remote H=<host> U=<user>
 	@test -n "$(H)" || { echo "H is required (host)"; exit 1; }
 	@test -n "$(U)" || { echo "U is required (user)"; exit 1; }
 	bash scripts/deploy-remote.sh "$(H)" "$(U)" $(ARGS)
