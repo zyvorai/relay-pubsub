@@ -3,7 +3,7 @@
 
 use crate::model::{
     Delivery, IamPolicy, InventoryReport, MessagePreview, NewMessage, Page, SchemaSpec,
-    SnapshotSpec, SubscriptionInventory, TopicInventory, SubscriptionSpec, TopicSpec,
+    SnapshotSpec, SubscriptionInventory, SubscriptionSpec, TopicInventory, TopicSpec,
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};

@@ -1171,7 +1171,7 @@ mod tests {
                     data: b"hello".to_vec(),
                     attributes: HashMap::new(),
                     ordering_key: String::new(),
-                message_id: String::new(),
+                    message_id: String::new(),
                 }],
             )
             .await
@@ -1205,7 +1205,7 @@ mod tests {
                     data: b"job".to_vec(),
                     attributes: HashMap::new(),
                     ordering_key: String::new(),
-                message_id: String::new(),
+                    message_id: String::new(),
                 }],
             )
             .await
@@ -1236,13 +1236,13 @@ mod tests {
                         data: b"1".to_vec(),
                         attributes: HashMap::new(),
                         ordering_key: "k".into(),
-                    message_id: String::new(),
+                        message_id: String::new(),
                     },
                     NewMessage {
                         data: b"2".to_vec(),
                         attributes: HashMap::new(),
                         ordering_key: "k".into(),
-                    message_id: String::new(),
+                        message_id: String::new(),
                     },
                 ],
             )
@@ -1278,7 +1278,7 @@ mod tests {
                     data: b"a".to_vec(),
                     attributes: HashMap::new(),
                     ordering_key: String::new(),
-                message_id: String::new(),
+                    message_id: String::new(),
                 }],
             )
             .await
@@ -1299,7 +1299,7 @@ mod tests {
                     data: b"b".to_vec(),
                     attributes: HashMap::new(),
                     ordering_key: String::new(),
-                message_id: String::new(),
+                    message_id: String::new(),
                 }],
             )
             .await
@@ -1353,7 +1353,7 @@ mod tests {
                     data: b"poison".to_vec(),
                     attributes: HashMap::new(),
                     ordering_key: String::new(),
-                message_id: String::new(),
+                    message_id: String::new(),
                 }],
             )
             .await
@@ -1378,7 +1378,7 @@ mod tests {
                     data: b"poison2".to_vec(),
                     attributes: HashMap::new(),
                     ordering_key: String::new(),
-                message_id: String::new(),
+                    message_id: String::new(),
                 }],
             )
             .await
@@ -1507,7 +1507,14 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(first, second);
-        assert_eq!(backend.pull("projects/demo/subscriptions/dedup-sub", 10).await.unwrap().len(), 1);
+        assert_eq!(
+            backend
+                .pull("projects/demo/subscriptions/dedup-sub", 10)
+                .await
+                .unwrap()
+                .len(),
+            1
+        );
     }
 
     #[tokio::test]

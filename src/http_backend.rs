@@ -469,7 +469,10 @@ impl RelayBackend for HttpRelayBackend {
         self.local.list_push_subscriptions().await
     }
 
-    async fn inventory(&self, project: &str) -> Result<crate::model::InventoryReport, BackendError> {
+    async fn inventory(
+        &self,
+        project: &str,
+    ) -> Result<crate::model::InventoryReport, BackendError> {
         self.local.inventory(project).await
     }
 }

@@ -27,7 +27,11 @@ pub fn enrich_message(topic: &str, message: &mut NewMessage) {
     let looks_like_ce = content_type.contains("cloudevents")
         || serde_json::from_slice::<Value>(&message.data)
             .ok()
-            .and_then(|v| v.get("specversion").and_then(Value::as_str).map(str::to_string))
+            .and_then(|v| {
+                v.get("specversion")
+                    .and_then(Value::as_str)
+                    .map(str::to_string)
+            })
             .is_some();
     if !looks_like_ce {
         return;
@@ -54,7 +58,9 @@ fn stamp(
     let Some(value) = value.and_then(Value::as_str) else {
         return;
     };
-    attributes.entry(key.to_string()).or_insert_with(|| value.to_string());
+    attributes
+        .entry(key.to_string())
+        .or_insert_with(|| value.to_string());
 }
 
 #[cfg(test)]
@@ -72,7 +78,13 @@ mod tests {
             message_id: String::new(),
         };
         enrich_message("projects/demo/topics/irrigation.required", &mut msg);
-        assert_eq!(msg.attributes.get("ce-type").unwrap(), "irrigation.required");
-        assert_eq!(msg.attributes.get("relay.topic").unwrap(), "irrigation.required");
+        assert_eq!(
+            msg.attributes.get("ce-type").unwrap(),
+            "irrigation.required"
+        );
+        assert_eq!(
+            msg.attributes.get("relay.topic").unwrap(),
+            "irrigation.required"
+        );
     }
 }

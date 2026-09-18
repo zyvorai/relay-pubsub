@@ -50,7 +50,9 @@ impl GrpcRelayBackend {
     }
 
     fn stub<T>() -> Result<T, BackendError> {
-        Err(BackendError::FailedPrecondition(NOT_IMPLEMENTED.to_string()))
+        Err(BackendError::FailedPrecondition(
+            NOT_IMPLEMENTED.to_string(),
+        ))
     }
 
     /// Best-effort HTTP `/healthz` probe until native Relay gRPC health exists.

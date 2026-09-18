@@ -112,7 +112,7 @@ async fn handle_action(
         data: data.to_string().into_bytes(),
         attributes,
         ordering_key: String::new(),
-    message_id: String::new(),
+        message_id: String::new(),
     };
 
     if let Err(e) = state

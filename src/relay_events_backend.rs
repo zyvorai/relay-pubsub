@@ -477,7 +477,10 @@ impl RelayBackend for RelayEventsBackend {
         delegate!(self.list_push_subscriptions())
     }
 
-    async fn inventory(&self, project: &str) -> Result<crate::model::InventoryReport, BackendError> {
+    async fn inventory(
+        &self,
+        project: &str,
+    ) -> Result<crate::model::InventoryReport, BackendError> {
         delegate!(self.inventory(project))
     }
 }
@@ -497,7 +500,7 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v.to_string()))
                 .collect(),
             ordering_key: String::new(),
-        message_id: String::new(),
+            message_id: String::new(),
         }
     }
 
@@ -524,8 +527,8 @@ mod tests {
                 name: topic.clone(),
                 labels: HashMap::new(),
                 kms_key_name: String::new(),
-            schema_name: String::new(),
-            schema_encoding: String::new(),
+                schema_name: String::new(),
+                schema_encoding: String::new(),
             })
             .await
             .unwrap();
@@ -565,8 +568,8 @@ mod tests {
                     name: topic.clone(),
                     labels: HashMap::new(),
                     kms_key_name: String::new(),
-                schema_name: String::new(),
-                schema_encoding: String::new(),
+                    schema_name: String::new(),
+                    schema_encoding: String::new(),
                 })
                 .await;
             backend
@@ -588,8 +591,8 @@ mod tests {
                 name: actions.clone(),
                 labels: HashMap::new(),
                 kms_key_name: String::new(),
-            schema_name: String::new(),
-            schema_encoding: String::new(),
+                schema_name: String::new(),
+                schema_encoding: String::new(),
             })
             .await
             .unwrap();
@@ -605,7 +608,7 @@ mod tests {
                 retry: None,
                 push_endpoint: None,
                 push_attributes: HashMap::new(),
-            filter: String::new(),
+                filter: String::new(),
             })
             .await
             .unwrap();
@@ -642,8 +645,8 @@ mod tests {
                 name: topic.into(),
                 labels: HashMap::new(),
                 kms_key_name: String::new(),
-            schema_name: String::new(),
-            schema_encoding: String::new(),
+                schema_name: String::new(),
+                schema_encoding: String::new(),
             })
             .await;
         let m = msg(br#"{"x":1}"#, &[("source", "s"), ("severity", "info")]);
@@ -677,8 +680,8 @@ mod tests {
                 name: topic.into(),
                 labels: HashMap::new(),
                 kms_key_name: String::new(),
-            schema_name: String::new(),
-            schema_encoding: String::new(),
+                schema_name: String::new(),
+                schema_encoding: String::new(),
             })
             .await;
         backend

@@ -189,7 +189,6 @@ where
         if message.is_empty() {
             message = meta.name().to_string();
         }
-        self.buffer
-            .push(*meta.level(), target, message);
+        self.buffer.push(*meta.level(), target, message);
     }
 }
