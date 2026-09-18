@@ -13,6 +13,7 @@
 ### Notes
 - Filters are immutable after `CreateSubscription` (Google semantics).
 - Multi-replica durable cursors remain a Relay-core item (v0.5 HA).
+- `make help`, `make ci`, and `make deploy-remote H=<host> U=<user>`. Sources are rustfmt-clean.
 
 ## [0.4.0] — 2026-08-29
 

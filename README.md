@@ -64,6 +64,8 @@ scope questions. Troubleshooting lives in
 
 ```bash
 docker compose up --build
+make ci                    # rustfmt, clippy, tests, release build
+make help
 bash scripts/smoke.sh          # curl -k, self-signed TLS
 ```
 
@@ -151,7 +153,7 @@ See [Getting started](docs/GETTING_STARTED.md) for the `PUBSUB_EMULATOR_HOST` ca
 
 | Target | Command |
 |--------|---------|
-| **Linux host (systemd)** | `bash scripts/deploy-remote.sh <HOST> <USER> --quick` |
+| **Linux host (systemd)** | `make deploy-remote H=<host> U=<user>` or `bash scripts/deploy-remote.sh <HOST> <USER> --quick` |
 | **Ops console** | `bash scripts/deploy-console-remote.sh <HOST> <USER>` |
 | **Local k3s** | `bash deploy/scripts/deploy-k3s.sh` |
 | **Helm** | `helm upgrade --install … deploy/helm/relay-pubsub` |
