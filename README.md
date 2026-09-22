@@ -1,30 +1,45 @@
 # relay-pubsub
 
+[![CI](https://github.com/zyvorai/relay-pubsub/actions/workflows/ci.yml/badge.svg)](https://github.com/zyvorai/relay-pubsub/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/zyvorai/relay-pubsub.svg)](https://github.com/zyvorai/relay-pubsub/releases)
+[![GHCR](https://img.shields.io/badge/GHCR-relay--pubsub-black.svg)](https://github.com/zyvorai/relay-pubsub/pkgs/container/relay-pubsub)
+
+![relay-pubsub — Google Pub/Sub APIs in, Relay events out](docs/social/relay-pubsub-share-card.png)
+
 **Google Cloud Pub/Sub compatibility for [Zyvor Relay](https://github.com/zyvorai/relay).**
+
+📖 **[Read the full docs](https://zyvorai.github.io/relay-pubsub/)** — install, testing, relay-events backend, and architecture.
 
 Speak familiar Pub/Sub gRPC and REST. The gateway handles translation, TLS, metrics, and — with `RELAY_BACKEND=relay-events` — forwards every publish to Relay's real **`POST /v1/events`** API.
 
 ```text
   Google SDK / curl          relay-pubsub              Zyvor Relay
   ─────────────────          ──────────────            ───────────
+
   Publish "irrigation.    →   topic = event type   →   Accept
   required"                    self-signed HTTPS        Notify · Act
   Pull / StreamingPull    ←   action queue          ←   /v1/actions
 ```
 
-[![Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
-[![GHCR](https://img.shields.io/badge/GHCR-relay--pubsub-black.svg)](https://github.com/zyvorai/relay-pubsub/pkgs/container/relay-pubsub)
-[![Release](https://img.shields.io/github/v/release/zyvorai/relay-pubsub.svg)](https://github.com/zyvorai/relay-pubsub/releases)
+**Images:** `ghcr.io/zyvorai/relay-pubsub:0.4.0` · `ghcr.io/zyvorai/relay-pubsub-console:0.4.0`  
+**Current release:** [v0.4.0](https://github.com/zyvorai/relay-pubsub/releases/tag/v0.4.0)
 
-**Images:** `ghcr.io/zyvorai/relay-pubsub:0.4.0` · `ghcr.io/zyvorai/relay-pubsub-console:0.4.0`
+## Contents
 
-**Current release: [v0.4.0](https://github.com/zyvorai/relay-pubsub/releases/tag/v0.4.0)** · Image: `ghcr.io/zyvorai/relay-pubsub:0.4.0`
-
----
+- [Why this exists](#why-this-exists)
+- [Is this for you?](#is-this-for-you)
+- [Quick start](#quick-start)
+- [Backends](#backends)
+- [What's implemented](#whats-implemented)
+- [TLS](#tls--no-reverse-proxy-needed)
+- [Deploy](#deploy)
+- [Documentation](#documentation)
+- [License](#license)
 
 ## Why this exists
 
-Relay's API is **event-lifecycle shaped** — not topics and subscriptions. But your edge apps, SDKs, and ops tooling speak **Google Pub/Sub**.
+Relay's API is **event-lifecycle shaped** — not topics and subscriptions. Edge apps, SDKs, and ops tooling speak **Google Pub/Sub**.
 
 relay-pubsub sits in the middle: full Publisher/Subscriber surface on the front, `RelayBackend` on the back. Production path: **`relay-events`** → Relay's shipped API. Demo path: **`memory`** → instant local round-trip.
 
@@ -34,38 +49,21 @@ Runs on **edge Linux (systemd)**, **Kubernetes / k3s**, or **Docker**.
 
 ## Is this for you?
 
-relay-pubsub is a narrow, open-source (Apache-2.0) **protocol compatibility
-gateway** — it exists purely so Google Pub/Sub SDKs/tooling can talk to
-Zyvor Relay's event-lifecycle API. It is not a general message broker
-(not a NATS/RabbitMQ/Kafka replacement) and not a standalone product —
-the `relay-events` production backend requires Relay itself to be running;
-only the `memory` backend works standalone, for demos/CI.
+relay-pubsub is a narrow, open-source (Apache-2.0) **protocol compatibility gateway** — so Google Pub/Sub SDKs can talk to Zyvor Relay's event-lifecycle API. It is not a general message broker (not NATS/RabbitMQ/Kafka) and not a standalone product: the `relay-events` backend needs Relay; only `memory` works alone (demos/CI).
 
-If you're evaluating this against the real Google Cloud Pub/Sub service or
-its official emulator: relay-pubsub implements the same gRPC/REST surface
-(topics/subscriptions, Publish, Pull, StreamingPull, Ack, Seek, Snapshots,
-IAM subset, SchemaService) but routes messages into Relay's durable event
-system, not Google's infrastructure — use it when you want Pub/Sub-shaped
-client code talking to a self-hosted, offline-capable edge stack instead.
+Use it when you want Pub/Sub-shaped client code talking to a self-hosted, offline-capable edge stack — not Google's infrastructure.
 
-**Maturity, stated honestly**: current release is v0.4.0. The README's own
-"Production boundary" section states this gateway "targets Google Pub/Sub
-compatibility through v0.3... Multi-replica durable cursors still belong
-in Relay core" — i.e. HA/durability guarantees beyond a single replica are
-not yet a property of this gateway itself.
+> **Maturity (honest):** v0.4.0. Google Pub/Sub compatibility through the v0.3 surface (updates, snapshots, push, IAM subset, schemas, ordering, exactly-once leases, durable local state). Multi-replica durable cursors still belong in Relay core — keep a single replica with PVC. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#compatibility-roadmap).
 
-New here? [`docs/FAQ.md`](docs/FAQ.md) covers licensing, support, and
-scope questions. Troubleshooting lives in
-[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md#troubleshooting).
-
----
+New here? [docs/FAQ.md](docs/FAQ.md) · troubleshooting in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#troubleshooting)
 
 ## Quick start
 
 ```bash
+git clone https://github.com/zyvorai/relay-pubsub.git
+cd relay-pubsub
 docker compose up --build
-make ci                    # rustfmt, clippy, tests, release build
-make help
+make ci
 bash scripts/smoke.sh          # curl -k, self-signed TLS
 ```
 
@@ -77,37 +75,16 @@ docker run --rm -p 8080:8080 -p 50051:50051 \
   -e RELAY_BACKEND=memory ghcr.io/zyvorai/relay-pubsub:0.4.0
 ```
 
-**Install all targets** → [docs/INSTALL.md](docs/INSTALL.md)  
-**How to test** → [docs/TESTING.md](docs/TESTING.md)  
-**New here?** → [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)
+**Install** → [docs/INSTALL.md](docs/INSTALL.md) · **Test** → [docs/TESTING.md](docs/TESTING.md) · **First publish** → [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)
 
----
-
-## Documentation
-
-| Guide | What's inside |
-|-------|---------------|
-| [❓ FAQ](docs/FAQ.md) | Licensing, support, scope questions |
-| [📖 Docs hub](docs/README.md) | Index of everything |
-| [📦 Installation](docs/INSTALL.md) | Docker, GHCR, Cargo, **systemd**, **Kubernetes**, console |
-| [🧪 Testing](docs/TESTING.md) | Smoke, conformance, Relay, console, release checklist |
-| [🚀 Getting started](docs/GETTING_STARTED.md) | First publish / pull |
-| [⚡ Relay events backend](docs/RELAY_EVENTS_BACKEND.md) | Production backend, catalogs, actions |
-| [🚢 Deployment](docs/DEPLOYMENT.md) | Lab notes, systemd + k8s detail |
-| [🏗 Architecture](docs/ARCHITECTURE.md) | Boundaries, HA, tenant model |
-| [🔎 Filters & schemas](docs/FILTERS.md) | Attribute filters, schema publish, CloudEvents |
-| [📝 Changelog](CHANGELOG.md) | Release notes |
-| [📜 Native API (legacy)](docs/relay-native-api.md) | Invented `http` backend contract |
-
----
-
-## Backends at a glance
+## Backends
 
 | Backend | Relay needed? | Use case |
 |---------|---------------|----------|
 | `memory` | No | CI, k3s smoke, demos, offline edge |
 | `http` | Yes (invented API) | Legacy — prefer relay-events |
-| **`relay-events`** | Yes (real API) | **Fasal, relay-edge, production** |
+| **`relay-events`** | Yes (real API) | **Production, relay-edge** |
+| `grpc` | Stub | Scaffold until a Relay gRPC proto lands |
 
 ```bash
 export RELAY_BACKEND=relay-events
@@ -117,9 +94,7 @@ export RELAY_TLS_INSECURE=1    # if Relay uses self-signed TLS
 cargo run
 ```
 
----
-
-## What's implemented (v0.3)
+## What's implemented
 
 <details>
 <summary><strong>Google-compatible surface</strong> (click to expand)</summary>
@@ -134,8 +109,6 @@ cargo run
 
 </details>
 
----
-
 ## TLS — no reverse proxy needed
 
 gRPC and REST are **TLS-only**. First start generates a self-signed cert at `/var/lib/relay-pubsub/tls/` (configurable). Set `PUBSUB_TLS_SAN` before first start to embed your host IP and service DNS names.
@@ -145,22 +118,18 @@ curl -k https://localhost:8080/healthz
 grpcurl -insecure localhost:50051 list
 ```
 
-See [Getting started](docs/GETTING_STARTED.md) for the `PUBSUB_EMULATOR_HOST` caveat with Google's plaintext emulator mode.
-
----
+See [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) for the `PUBSUB_EMULATOR_HOST` caveat with Google's plaintext emulator mode.
 
 ## Deploy
 
 | Target | Command |
 |--------|---------|
-| **Linux host (systemd)** | `make deploy-remote H=<host> U=<user>` or `bash scripts/deploy-remote.sh <HOST> <USER> --quick` |
+| **Linux host (systemd)** | `make deploy-remote H=<host> U=<user>` |
 | **Ops console** | `bash scripts/deploy-console-remote.sh <HOST> <USER>` |
 | **Local k3s** | `bash deploy/scripts/deploy-k3s.sh` |
 | **Helm** | `helm upgrade --install … deploy/helm/relay-pubsub` |
 | **k8s + relay-edge** | From relay-edge: `./deploy/scripts/deploy-k8s-remote.sh <HOST>` |
 | **GHCR** | `docker pull ghcr.io/zyvorai/relay-pubsub:0.4.0` |
-
-Verify:
 
 ```bash
 BASE=https://<host>:8081 bash scripts/smoke.sh
@@ -168,35 +137,33 @@ BASE=https://<host>:8081 bash scripts/conformance-smoke.sh
 BASE=https://<host>:8081 bash scripts/smoke-relay-events.sh
 ```
 
-Full install + test guides → [INSTALL](docs/INSTALL.md) · [TESTING](docs/TESTING.md) · [DEPLOYMENT](docs/DEPLOYMENT.md)
-
-**Stack integration test:** relay-edge [TEST_RESULTS.md](https://github.com/zyvorai/relay-edge/blob/main/docs/TEST_RESULTS.md) (2026-08-28 — all PASS, includes this gateway).
-
----
-
 ## Part of the Zyvor stack
 
 | Project | Role |
 |---------|------|
-| **[relay](https://github.com/zyvorai/relay)** | Control plane |
-| **relay-pubsub** (this repo) | Pub/Sub gateway |
+| **[relay](https://github.com/zyvorai/relay)** | Control plane — Accept → Notify → Ack → Act → Verify |
+| **relay-pubsub** (this repo) | Pub/Sub compatibility gateway |
 | **[relay-edge](https://github.com/zyvorai/relay-edge)** | Farm domain + simulators |
 
----
+## Documentation
 
-## Production boundary
+| Guide | What's inside |
+|-------|---------------|
+| [zyvorai.github.io/relay-pubsub](https://zyvorai.github.io/relay-pubsub/) | Product docs |
+| [docs/FAQ.md](docs/FAQ.md) | Licensing, support, scope |
+| [docs/INSTALL.md](docs/INSTALL.md) | Docker, GHCR, systemd, Kubernetes |
+| [docs/RELAY_EVENTS_BACKEND.md](docs/RELAY_EVENTS_BACKEND.md) | Production backend |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Boundaries, HA, tenant model |
+| [docs/FILTERS.md](docs/FILTERS.md) | Attribute filters, schemas, CloudEvents |
+| [CHANGELOG.md](CHANGELOG.md) | Release notes |
 
-This gateway targets Google Pub/Sub compatibility through v0.3 (updates, snapshots, push, IAM subset, schemas, ordering, exactly-once leases, durable local state, inventory + logs). Multi-replica durable cursors still belong in Relay core. See the [compatibility roadmap](docs/ARCHITECTURE.md#compatibility-roadmap).
-
----
+Social assets: [docs/social/](docs/social/).
 
 ## License
 
 ### Open source (Apache-2.0)
 
-This repository is licensed under the [Apache License, Version 2.0](LICENSE).
-You may use, modify, and run it for personal, lab, and commercial production
-use at no charge, subject to Apache-2.0 (preserve notices / NOTICE where required).
+Licensed under the [Apache License, Version 2.0](LICENSE). Personal, lab, and commercial production use at no charge, subject to Apache-2.0 (preserve notices / NOTICE where required).
 
 ### Enterprise
 
