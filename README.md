@@ -5,6 +5,9 @@
 [![Release](https://img.shields.io/github/v/release/zyvorai/relay-pubsub.svg)](https://github.com/zyvorai/relay-pubsub/releases)
 [![GHCR](https://img.shields.io/badge/GHCR-relay--pubsub-black.svg)](https://github.com/zyvorai/relay-pubsub/pkgs/container/relay-pubsub)
 
+[![Book a demo](https://img.shields.io/badge/Book_a_demo-0071e3?style=for-the-badge)](https://zyvor.dev/schedule?utm_source=github&utm_medium=relay-pubsub&utm_campaign=readme_hero)
+[![30-day PoC](https://img.shields.io/badge/30--day_PoC-1d1d1f?style=for-the-badge)](https://zyvor.dev/poc?utm_source=github&utm_medium=relay-pubsub&utm_campaign=readme_hero)
+
 ![relay-pubsub — Google Pub/Sub APIs in, Relay events out](docs/social/relay-pubsub-share-card.png)
 
 **Google Cloud Pub/Sub compatibility for [Zyvor Relay](https://github.com/zyvorai/relay).**
@@ -168,4 +171,6 @@ Licensed under the [Apache License, Version 2.0](LICENSE). Personal, lab, and co
 ### Enterprise
 
 Production support, SLAs, and Zyvor Enterprise products are licensed separately.
-Contact [sales@zyvor.dev](mailto:sales@zyvor.dev) or see [zyvor.dev](https://zyvor.dev).
+[Book a demo](https://zyvor.dev/schedule?utm_source=github&utm_medium=relay-pubsub&utm_campaign=readme_footer) · [30-day PoC](https://zyvor.dev/poc?utm_source=github&utm_medium=relay-pubsub&utm_campaign=readme_footer) · fallback: [sales@zyvor.dev](mailto:sales@zyvor.dev)
+
+Or see [zyvor.dev](https://zyvor.dev/?utm_source=github&utm_medium=relay-pubsub&utm_campaign=readme_edition).
