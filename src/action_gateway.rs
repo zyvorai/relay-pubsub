@@ -115,6 +115,14 @@ async fn handle_action(
         message_id: String::new(),
     };
 
+    // Hold the lock across check + publish + insert so a retried (or
+    // concurrent) Idempotency-Key never enqueues a second command.
+    let mut map = state.by_key.lock().await;
+    if let Some(existing) = map.get(&key).cloned() {
+        drop(map);
+        return result_response(existing, true);
+    }
+
     if let Err(e) = state
         .backend
         .publish(&state.actions_topic, vec![message])
@@ -136,14 +144,12 @@ async fn handle_action(
         at: Utc::now(),
     };
 
-    // Re-check-and-insert under lock, after the (slow) publish, so a
-    // concurrent retry of the same Idempotency-Key converges on one winner
-    // instead of both racing to "create" and returning different results.
-    let mut map = state.by_key.lock().await;
-    let is_replay = map.contains_key(&key);
-    let result = map.entry(key).or_insert(candidate).clone();
+    map.insert(key, candidate.clone());
     drop(map);
+    result_response(candidate, false)
+}
 
+fn result_response(result: ActionResult, is_replay: bool) -> Response {
     let mut response = Json(result.clone()).into_response();
     if let Ok(v) = result.provider_id.parse() {
         response.headers_mut().insert("X-Action-ID", v);
@@ -188,6 +194,39 @@ mod tests {
             router(ActionGatewayState::new(backend, actions_topic.clone())),
             actions_topic,
         )
+    }
+
+    #[tokio::test]
+    async fn retry_does_not_enqueue_duplicate() {
+        let actions_topic = "projects/fasal-onprem/topics/farm-actions".to_string();
+        let sub = "projects/fasal-onprem/subscriptions/farm-actions-sub";
+        let backend: Arc<dyn RelayBackend> = Arc::new(MemoryBackend::new());
+        backend
+            .create_topic(TopicSpec {
+                name: actions_topic.clone(),
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+        backend
+            .create_subscription(SubscriptionSpec {
+                name: sub.into(),
+                topic: actions_topic.clone(),
+                ack_deadline_seconds: 30,
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+        let app = router(ActionGatewayState::new(backend.clone(), actions_topic));
+        for _ in 0..3 {
+            let req = Request::post("/v1/actions")
+                .header("idempotency-key", "k")
+                .body(Body::from(r#"{"command":"pump.start"}"#))
+                .unwrap();
+            assert_eq!(app.clone().oneshot(req).await.unwrap().status(), StatusCode::OK);
+        }
+        let pulled = backend.pull(sub, 10).await.unwrap();
+        assert_eq!(pulled.len(), 1);
     }
 
     #[tokio::test]

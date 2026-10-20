@@ -49,10 +49,14 @@ async fn tick(
         let Some(endpoint) = &sub.push_endpoint else {
             continue;
         };
-        let deliveries = backend
-            .pull(&sub.name, 20)
-            .await
-            .map_err(|e| e.to_string())?;
+        // One failing subscription must not starve the others.
+        let deliveries = match backend.pull(&sub.name, 20).await {
+            Ok(d) => d,
+            Err(e) => {
+                warn!(error = %e, subscription = %sub.name, "push pull failed");
+                continue;
+            }
+        };
         for delivery in deliveries {
             let body = json!({
                 "message": {
