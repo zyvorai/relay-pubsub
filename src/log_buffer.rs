@@ -63,7 +63,8 @@ impl LogBuffer {
         }
     }
 
-    /// Entries with `id > after_id`, newest last, capped at `limit`.
+    /// Oldest `limit` entries with `id > after_id`, newest last, so a tailer
+    /// that fell behind pages forward without skipping entries.
     pub fn since(&self, after_id: u64, limit: usize) -> Vec<LogEntry> {
         let guard = self.inner.lock().expect("log buffer lock");
         let limit = limit.clamp(1, 2000);
@@ -71,12 +72,8 @@ impl LogBuffer {
             .entries
             .iter()
             .filter(|e| e.id > after_id)
-            .cloned()
-            .rev()
             .take(limit)
-            .collect::<Vec<_>>()
-            .into_iter()
-            .rev()
+            .cloned()
             .collect()
     }
 
@@ -190,5 +187,22 @@ where
             message = meta.name().to_string();
         }
         self.buffer.push(*meta.level(), target, message);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn since_pages_forward_without_gaps() {
+        let buf = LogBuffer::new(1000);
+        for i in 0..10 {
+            buf.push(Level::INFO, "t", format!("m{i}"));
+        }
+        let first = buf.since(0, 3);
+        assert_eq!(first.iter().map(|e| e.id).collect::<Vec<_>>(), vec![1, 2, 3]);
+        let next = buf.since(first.last().unwrap().id, 3);
+        assert_eq!(next.iter().map(|e| e.id).collect::<Vec<_>>(), vec![4, 5, 6]);
     }
 }

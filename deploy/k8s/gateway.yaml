@@ -9,7 +9,7 @@ metadata:
   name: relay-pubsub
   labels: { app.kubernetes.io/name: relay-pubsub, app.kubernetes.io/part-of: zyvor-relay }
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels: { app.kubernetes.io/name: relay-pubsub }
   template:
