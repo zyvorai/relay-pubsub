@@ -27,6 +27,8 @@
 
 ---
 
+[Client overview (PDF)](docs/relay-pubsub-Client-Overview.pdf)
+
 ## What's new
 
 | | |
