@@ -155,6 +155,6 @@ bash scripts/client-matrix.sh            # REST + Python/Node/Go lanes
 
 ## Related projects
 
-- [relay](https://github.com/zyvorai/relay) — control plane
+- relay — control plane
 - [relay-edge](https://github.com/zyvorai/relay-edge) — domain + simulators
 - [zyvor.dev](https://zyvor.dev) — Zyvor

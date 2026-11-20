@@ -17,7 +17,7 @@
 
 ### Speak Google Pub/Sub. Land in Zyvor Relay.
 
-**Google Cloud Pub/Sub compatibility for [Zyvor Relay](https://github.com/zyvorai/relay).** Speak familiar Pub/Sub gRPC and REST. The gateway handles translation, TLS, metrics, and — with `RELAY_BACKEND=relay-events` — forwards every publish to Relay's real **`POST /v1/events`** API.
+**Google Cloud Pub/Sub compatibility for Zyvor Relay.** Speak familiar Pub/Sub gRPC and REST. The gateway handles translation, TLS, metrics, and — with `RELAY_BACKEND=relay-events` — forwards every publish to Relay's real **`POST /v1/events`** API.
 
 **Pub/Sub gRPC + REST** · **Publisher, Subscriber and SchemaService** · **TLS-only, no reverse proxy** · **4 backends** · **Rust, Zyvor Production License**
 
@@ -205,7 +205,7 @@ New here? [docs/FAQ.md](docs/FAQ.md) · troubleshooting in [docs/DEPLOYMENT.md](
 
 | Project | Role |
 |---------|------|
-| **[relay](https://github.com/zyvorai/relay)** | Control plane — Accept → Notify → Ack → Act → Verify |
+| **relay** | Control plane — Accept → Notify → Ack → Act → Verify |
 | **relay-pubsub** (this repo) | Pub/Sub compatibility gateway |
 | **[relay-edge](https://github.com/zyvorai/relay-edge)** | Farm domain + simulators; publishes stamped events through this gateway |
 
@@ -215,7 +215,7 @@ New here? [docs/FAQ.md](docs/FAQ.md) · troubleshooting in [docs/DEPLOYMENT.md](
 
 ## Support
 
-A commercial license is required to run it (sales@zyvor.dev); a 30-day trial key is how to evaluate. If it helps you, you can donate any amount you like: <https://rzp.io/rzp/utwdYh3>. A donation is voluntary and supports development and maintenance. It is not a purchase: it buys no support, SLA, features, priority or license, and it is not tax-deductible (Zyvor AI Labs Private Limited is a company, not a charity). Support contracts are separate: [sales@zyvor.dev](mailto:sales@zyvor.dev).
+Production use needs a paid commercial license ([pricing](https://zyvor.dev/pricing)); a 30-day trial key is available at <https://zyvor.dev/trial/start>. If it helps you, you can donate any amount you like: <https://rzp.io/rzp/utwdYh3>. A donation is voluntary and supports development and maintenance. It is not a purchase: it buys no support, SLA, features, priority or license, and it is not tax-deductible (Zyvor AI Labs Private Limited is a company, not a charity). Support contracts are separate: [sales@zyvor.dev](mailto:sales@zyvor.dev).
 
 ## License
 

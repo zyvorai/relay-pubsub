@@ -42,4 +42,4 @@ Full license: [LICENSE](https://github.com/zyvorai/relay-pubsub/blob/main/LICENS
 ## Related
 
 - [relay-edge docs](https://github.com/zyvorai/relay-edge/blob/main/docs/LICENSE_HEADERS.md)
-- [relay docs](https://github.com/zyvorai/relay/blob/main/docs/LICENSE_HEADERS.md)
+- relay docs
