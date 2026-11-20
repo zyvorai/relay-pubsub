@@ -3,7 +3,7 @@
 # relay-pubsub
 
 [![CI](https://github.com/zyvorai/relay-pubsub/actions/workflows/ci.yml/badge.svg)](https://github.com/zyvorai/relay-pubsub/actions/workflows/ci.yml)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![License: Zyvor Production 1.0](https://img.shields.io/badge/License-Zyvor_Production_1.0-1d1d1f.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-gRPC%20%C2%B7%20REST%20gateway-000000?logo=rust)](Cargo.toml)
 [![Release](https://img.shields.io/github/v/release/zyvorai/relay-pubsub.svg)](https://github.com/zyvorai/relay-pubsub/releases)
 [![GHCR](https://img.shields.io/badge/GHCR-relay--pubsub-black.svg)](https://github.com/zyvorai/relay-pubsub/pkgs/container/relay-pubsub)

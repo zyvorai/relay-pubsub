@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright 2026 Zyvor AI Labs · https://zyvor.dev
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: LicenseRef-Zyvor-Production-1.0
 # relay-events smoke: publish irrigation.required through self-signed HTTPS gateway.
 set -euo pipefail
 BASE=${BASE:-https://127.0.0.1:8080}
