@@ -1,0 +1,107 @@
+openapi: 3.1.0
+info:
+  title: Zyvor Relay Native Adapter API
+  version: 0.1.0
+  description: Minimal backend contract consumed by relay-pubsub.
+servers:
+  - url: http://relay:9090
+paths:
+  /v1/topics:
+    post:
+      operationId: createTopic
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Topic' } } }
+      responses: { '200': { description: Topic created, content: { application/json: { schema: { $ref: '#/components/schemas/Topic' } } } } }
+    get:
+      operationId: listTopics
+      parameters: [ { name: project, in: query, required: true, schema: { type: string } } ]
+      responses: { '200': { description: Topics, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Topic' } } } } } }
+  /v1/topics/by-name:
+    get:
+      operationId: getTopic
+      parameters: [ { name: name, in: query, required: true, schema: { type: string } } ]
+      responses: { '200': { description: Topic, content: { application/json: { schema: { $ref: '#/components/schemas/Topic' } } } } }
+    delete:
+      operationId: deleteTopic
+      parameters: [ { name: name, in: query, required: true, schema: { type: string } } ]
+      responses: { '204': { description: Deleted } }
+  /v1/subscriptions:
+    post:
+      operationId: createSubscription
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Subscription' } } }
+      responses: { '200': { description: Subscription created, content: { application/json: { schema: { $ref: '#/components/schemas/Subscription' } } } } }
+    get:
+      operationId: listSubscriptions
+      parameters: [ { name: project, in: query, required: true, schema: { type: string } } ]
+      responses: { '200': { description: Subscriptions, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Subscription' } } } } } }
+  /v1/subscriptions/by-name:
+    get:
+      operationId: getSubscription
+      parameters: [ { name: name, in: query, required: true, schema: { type: string } } ]
+      responses: { '200': { description: Subscription, content: { application/json: { schema: { $ref: '#/components/schemas/Subscription' } } } } }
+    delete:
+      operationId: deleteSubscription
+      parameters: [ { name: name, in: query, required: true, schema: { type: string } } ]
+      responses: { '204': { description: Deleted } }
+  /v1/messages:publish:
+    post:
+      operationId: publish
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [topic, messages]
+              properties:
+                topic: { type: string }
+                messages: { type: array, items: { $ref: '#/components/schemas/NewMessage' } }
+      responses: { '200': { description: Published } }
+  /v1/messages:pull:
+    post:
+      operationId: pull
+      responses: { '200': { description: Deliveries } }
+  /v1/messages:ack:
+    post:
+      operationId: acknowledge
+      responses: { '204': { description: Acknowledged } }
+  /v1/messages:modify-ack-deadline:
+    post:
+      operationId: modifyAckDeadline
+      responses: { '204': { description: Modified } }
+  /v1/subscriptions:seek:
+    post:
+      operationId: seek
+      responses: { '204': { description: Cursor moved } }
+components:
+  schemas:
+    Topic:
+      type: object
+      required: [name, labels, kms_key_name]
+      properties:
+        name: { type: string }
+        labels: { type: object, additionalProperties: { type: string } }
+        kms_key_name: { type: string }
+    Subscription:
+      type: object
+      required: [name, topic, ack_deadline_seconds, labels]
+      properties:
+        name: { type: string }
+        topic: { type: string }
+        ack_deadline_seconds: { type: integer }
+        labels: { type: object, additionalProperties: { type: string } }
+        enable_message_ordering: { type: boolean }
+        enable_exactly_once_delivery: { type: boolean }
+        push_endpoint: { type: [string, 'null'] }
+        dead_letter: { type: [object, 'null'] }
+        retry: { type: [object, 'null'] }
+    NewMessage:
+      type: object
+      required: [data, attributes, ordering_key]
+      properties:
+        data: { type: array, items: { type: integer, minimum: 0, maximum: 255 } }
+        attributes: { type: object, additionalProperties: { type: string } }
+        ordering_key: { type: string }

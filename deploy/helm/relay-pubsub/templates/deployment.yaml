@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: relay-pubsub
+    app.kubernetes.io/part-of: zyvor-relay
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: {{ .Release.Name }} }
+  template:
+    metadata:
+      labels: { app: {{ .Release.Name }} }
+    spec:
+      containers:
+        - name: gateway
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - { name: grpc, containerPort: 50051 }
+            - { name: http, containerPort: 8080 }
+          env:
+            - { name: PUBSUB_GRPC_ADDR, value: "0.0.0.0:50051" }
+            - { name: PUBSUB_HTTP_ADDR, value: "0.0.0.0:8080" }
+            - { name: PUBSUB_TLS_CERT, value: {{ .Values.tls.certPath | quote }} }
+            - { name: PUBSUB_TLS_KEY, value: {{ .Values.tls.keyPath | quote }} }
+            - { name: PUBSUB_TLS_SAN, value: {{ .Values.tls.san | quote }} }
+            - { name: PUBSUB_DATA_DIR, value: {{ .Values.persist.dataDir | quote }} }
+            - { name: PUBSUB_PERSIST, value: {{ .Values.persist.enabled | quote }} }
+            - { name: PUBSUB_PUSH_INTERVAL_SECONDS, value: {{ .Values.push.intervalSeconds | quote }} }
+            - { name: RELAY_BACKEND, value: {{ .Values.relay.backend | quote }} }
+            - { name: RELAY_BASE_URL, value: {{ .Values.relay.baseUrl | quote }} }
+            - { name: RELAY_TLS_INSECURE, value: {{ .Values.relay.tlsInsecure | quote }} }
+            - { name: FASAL_GCP_PROJECT, value: {{ .Values.relay.gcpProject | quote }} }
+            - { name: FASAL_ACTIONS_TOPIC, value: {{ .Values.relay.actionsTopic | quote }} }
+            - { name: FASAL_ACTIONS_SUBSCRIPTION, value: {{ .Values.relay.actionsSubscription | quote }} }
+            {{- if or (eq .Values.relay.backend "http") (eq .Values.relay.backend "relay-events") }}
+            - name: RELAY_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.relay.existingSecret }}
+                  key: {{ .Values.relay.tokenKey }}
+            {{- end }}
+            {{- if .Values.gatewayAuth.enabled }}
+            - name: RELAY_PUBSUB_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.gatewayAuth.existingSecret }}
+                  key: {{ .Values.gatewayAuth.tokenKey }}
+            {{- end }}
+          volumeMounts:
+            - { name: tls, mountPath: /var/lib/relay-pubsub/tls }
+            - { name: data, mountPath: {{ .Values.persist.dataDir | quote }} }
+          readinessProbe:
+            httpGet: { path: /readyz, port: http, scheme: HTTPS }
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: http, scheme: HTTPS }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: tls
+          emptyDir: {}
+        - name: data
+          {{- if .Values.persist.persistentVolumeClaim }}
+          persistentVolumeClaim: { claimName: {{ .Values.persist.persistentVolumeClaim | quote }} }
+          {{- else if .Values.persist.createPvc }}
+          persistentVolumeClaim: { claimName: {{ printf "%s-data" .Release.Name | quote }} }
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

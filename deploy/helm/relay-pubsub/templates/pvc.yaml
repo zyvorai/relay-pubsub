@@ -1,0 +1,16 @@
+{{- if and .Values.persist.createPvc (not .Values.persist.persistentVolumeClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-data
+  labels:
+    app.kubernetes.io/name: relay-pubsub
+spec:
+  accessModes: [ "ReadWriteOnce" ]
+  {{- if .Values.persist.storageClass }}
+  storageClassName: {{ .Values.persist.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persist.size | quote }}
+{{- end }}

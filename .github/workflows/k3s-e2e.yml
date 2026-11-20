@@ -1,0 +1,34 @@
+name: k3s-e2e
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'proto/**'
+      - 'deploy/**'
+      - 'scripts/smoke.sh'
+      - '.github/workflows/k3s-e2e.yml'
+  push:
+    tags: ['v*']
+
+jobs:
+  k3s-e2e:
+    name: k3s install + Helm deploy + smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy relay-pubsub to local k3s
+        run: bash deploy/scripts/deploy-k3s.sh
+      - name: Run E2E smoke test
+        run: bash deploy/scripts/ci-k3s-e2e.sh
+      - name: Dump pod state on failure
+        if: failure()
+        run: |
+          export KUBECONFIG="${HOME}/.kube/config"
+          kubectl -n relay-pubsub get pods -o wide || true
+          kubectl -n relay-pubsub logs -l app=relay-pubsub --all-containers --tail=200 --prefix || true
+          kubectl -n relay-pubsub describe pods || true

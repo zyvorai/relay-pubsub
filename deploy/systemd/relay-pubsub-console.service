@@ -1,0 +1,26 @@
+[Unit]
+Description=Zyvor relay-pubsub-console (HTTPS UI + gateway proxy)
+Documentation=https://github.com/zyvorai/relay-pubsub
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory={{APP_DIR}}
+Environment=HOME={{APP_DIR}}
+Environment=CONSOLE_DIST={{APP_DIR}}/dist
+Environment=CONSOLE_PORT={{PORT}}
+Environment=CONSOLE_HOST=0.0.0.0
+Environment=CONSOLE_TLS_CERT={{TLS_DIR}}/cert.pem
+Environment=CONSOLE_TLS_KEY={{TLS_DIR}}/key.pem
+Environment=GATEWAY_UPSTREAM={{GATEWAY_UPSTREAM}}
+ExecStart=/usr/bin/node {{APP_DIR}}/server.mjs
+Restart=always
+RestartSec=5
+User=relay-console
+Group=relay-console
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
