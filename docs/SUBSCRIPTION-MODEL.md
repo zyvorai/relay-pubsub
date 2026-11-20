@@ -1,12 +1,11 @@
 # relay-pubsub: support subscriptions
 
-relay-pubsub is source-available software. Non-production use is free under the Zyvor Production License v1.0; production use requires a commercial license (sales@zyvor.dev).
+relay-pubsub is source-available software. A commercial license is required to run it (sales@zyvor.dev); a 30-day trial key is how to evaluate.
 
 Teams that want supported releases and defined response targets can buy an annual **support subscription** from Zyvor.
 
 | Plan | What you get | Coverage |
 |------|--------------|----------|
-| Community | The software, community documentation and public issue tracking | No contracted response target |
 | Standard | Deployment and upgrade guidance, defined supported configuration | Business hours |
 | Supported | Standard plus priority queue and incident triage | Business hours, faster response |
 | Enterprise | Supported plus a named technical contact and 24x7 critical intake | One-hour initial response target for critical issues |
@@ -28,7 +27,7 @@ Volume ladder on per-node list prices: 256-499 nodes -10%, 500-999 -15%, 1,000+ 
 
 Prices: INR incl. 18% GST in India; US dollars excl. tax elsewhere (VAT, GST or sales tax added where applicable). Pay online by UPI, card or netbanking where a buy page exists; international cards work (charged in rupees); or request a US-dollar invoice by bank transfer. Custom pricing: contact [sales@zyvor.dev](mailto:sales@zyvor.dev).
 
-Buy / get a quote: <https://zyvor.dev/buy>. A 30-day trial key is available for production licences; non-production use of the software stays free under the Zyvor Production License v1.0 ([30-day PoC](https://zyvor.dev/poc)).
+Buy / get a quote: <https://zyvor.dev/buy>. A 30-day trial key is available for production licences ([30-day PoC](https://zyvor.dev/poc)).
 
 ## Terms
 
