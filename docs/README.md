@@ -9,7 +9,7 @@ hero:
   swatches:
     - {label: "v0.4.0"}
     - {label: "TLS-only"}
-    - {label: "Apache-2.0"}
+    - {label: "Zyvor Production License"}
   highlights:
     - {value: "v0.4.0", label: "Current release — client conformance matrix, Helm console + PVC", footnote: "1"}
     - {value: "40", label: "Relay event types pre-registered across 4 catalogs at startup", footnote: "2"}

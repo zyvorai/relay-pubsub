@@ -19,7 +19,7 @@
 
 **Google Cloud Pub/Sub compatibility for [Zyvor Relay](https://github.com/zyvorai/relay).** Speak familiar Pub/Sub gRPC and REST. The gateway handles translation, TLS, metrics, and — with `RELAY_BACKEND=relay-events` — forwards every publish to Relay's real **`POST /v1/events`** API.
 
-**Pub/Sub gRPC + REST** · **Publisher, Subscriber and SchemaService** · **TLS-only, no reverse proxy** · **4 backends** · **Rust, Apache 2.0**
+**Pub/Sub gRPC + REST** · **Publisher, Subscriber and SchemaService** · **TLS-only, no reverse proxy** · **4 backends** · **Rust, Zyvor Production License**
 
 📖 **[Read the full docs](https://zyvorai.github.io/relay-pubsub/)** — install, testing, relay-events backend, and architecture.
 
@@ -210,7 +210,7 @@ Social assets: [docs/social/](docs/social/).
 
 ## Maturity
 
-relay-pubsub is a narrow, open-source (Apache-2.0) **protocol compatibility gateway** — so Google Pub/Sub SDKs can talk to Zyvor Relay's event-lifecycle API. It is not a general message broker (not NATS/RabbitMQ/Kafka) and not a standalone product: the `relay-events` backend needs Relay; only `memory` works alone (demos/CI).
+relay-pubsub is a narrow, source-available (Zyvor Production License v1.0) **protocol compatibility gateway** — so Google Pub/Sub SDKs can talk to Zyvor Relay's event-lifecycle API. It is not a general message broker (not NATS/RabbitMQ/Kafka) and not a standalone product: the `relay-events` backend needs Relay; only `memory` works alone (demos/CI).
 
 Use it when you want Pub/Sub-shaped client code talking to a self-hosted, offline-capable edge stack — not Google's infrastructure.
 
@@ -234,11 +234,11 @@ New here? [docs/FAQ.md](docs/FAQ.md) · troubleshooting in [docs/DEPLOYMENT.md](
 
 ## Support
 
-Free under Apache-2.0. If it helps you, you can donate any amount you like: <https://rzp.io/rzp/utwdYh3>. A donation is voluntary and supports development and maintenance. It is not a purchase: it buys no support, SLA, features, priority or license, and it is not tax-deductible (Zyvor AI Labs Private Limited is a company, not a charity). Support contracts are separate: [sales@zyvor.dev](mailto:sales@zyvor.dev).
+Non-production use is free under the Zyvor Production License v1.0; production use requires a commercial license (sales@zyvor.dev). If it helps you, you can donate any amount you like: <https://rzp.io/rzp/utwdYh3>. A donation is voluntary and supports development and maintenance. It is not a purchase: it buys no support, SLA, features, priority or license, and it is not tax-deductible (Zyvor AI Labs Private Limited is a company, not a charity). Support contracts are separate: [sales@zyvor.dev](mailto:sales@zyvor.dev).
 
 ## License
 
-relay-pubsub is **free and open source** under the [Apache License, Version 2.0](LICENSE) (see [NOTICE](NOTICE)). Personal, lab, and commercial production use at no charge, subject to Apache-2.0 (preserve notices / NOTICE where required). That does not change.
+relay-pubsub is source-available under the **[Zyvor Production License v1.0](LICENSE)** (SPDX `LicenseRef-Zyvor-Production-1.0`, also in [LICENSES/](LICENSES/LicenseRef-Zyvor-Production-1.0.txt); see [NOTICE](NOTICE)). Non-production use (evaluation, development, testing, research, education) is free. Production use requires a commercial license from Zyvor AI Labs Private Limited ([sales@zyvor.dev](mailto:sales@zyvor.dev), [zyvor.dev/buy](https://zyvor.dev/buy)); a 30-day trial key is available for production evaluation.
 
 **Zyvor Enterprise** adds what production teams ask for: supported releases, deployment and upgrade guidance, priority incident triage, a named technical contact and 24x7 critical intake. Plans and terms: [docs/SUBSCRIPTION-MODEL.md](docs/SUBSCRIPTION-MODEL.md) · [Pricing](https://zyvor.dev/pricing?utm_source=github&utm_medium=relay-pubsub&utm_campaign=readme_license) · [Buy / get a quote](https://zyvor.dev/buy) · [sales@zyvor.dev](mailto:sales@zyvor.dev).
 

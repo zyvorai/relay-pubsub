@@ -136,7 +136,7 @@ export default function App() {
             zyvor.dev
           </a>
           {' · '}
-          Relay Pub/Sub · Apache-2.0 · Zyvor AI Labs
+          Relay Pub/Sub · Zyvor Production License · Zyvor AI Labs
         </p>
       </footer>
     </>

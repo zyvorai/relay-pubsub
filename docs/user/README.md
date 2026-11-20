@@ -33,4 +33,4 @@ Output lands in [`pdf/`](pdf/):
 
 ---
 
-*Zyvor · relay-pubsub · Apache-2.0*
+*Zyvor · relay-pubsub · Zyvor Production License*
