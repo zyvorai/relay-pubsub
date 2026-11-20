@@ -27,7 +27,6 @@
 
 ---
 
-[Client overview (PDF)](docs/relay-pubsub-Client-Overview.pdf)
 
 ## What's new
 
@@ -56,24 +55,6 @@ Full history: [CHANGELOG.md](CHANGELOG.md).
 | You want a demo or CI run without the whole stack | The `memory` backend: an instant local round-trip, no Relay needed |
 
 ![Capabilities at a glance: Speak, Deliver, Forward, Operate](docs/ux/readme-capabilities.jpg)
-
----
-
-## relay-pubsub vs Google Cloud Pub/Sub
-
-![relay-pubsub vs Google Cloud Pub/Sub: same client code, your own edge](docs/ux/readme-vs.jpg)
-
-relay-pubsub does not replace Google's service; it lets Pub/Sub-shaped client code talk to a self-hosted Relay stack instead.
-
-| | **relay-pubsub** | **Google Cloud Pub/Sub** (managed) |
-|---|---|---|
-| Where it runs | Your host: systemd, Kubernetes / k3s, Docker | Google Cloud |
-| Where messages go | Zyvor Relay's event lifecycle (`relay-events`), or `memory` for demos | Google's managed topic and subscription store |
-| Wire API | Publisher, Subscriber and SchemaService gRPC, `/v1/projects/...` REST | The reference gRPC and REST API |
-| Transport | TLS-only, self-signed cert on first start or your own | Google-managed TLS endpoints |
-| Access control | Optional static bearer or OIDC JWKS; IAM subset | Google Cloud IAM |
-| Scale-out | Single replica with a PVC today; multi-replica cursors are planned in Relay core | Managed and global |
-| **Choose Google Cloud Pub/Sub when** | | You want a managed, global broker in Google Cloud and your sites can reach it |
 
 ---
 
