@@ -1,5 +1,5 @@
 // Copyright 2026 Zyvor AI Labs · https://zyvor.dev
-// SPDX-License-Identifier: LicenseRef-Zyvor-Production-1.0
+// SPDX-License-Identifier: LicenseRef-Zyvor-Production-2.0
 
 import { Console } from './Console'
 import { LiveDemo } from './demo/LiveDemo'
@@ -136,7 +136,7 @@ export default function App() {
             zyvor.dev
           </a>
           {' · '}
-          Relay Pub/Sub · Zyvor Production License · Zyvor AI Labs
+          Relay Pub/Sub · Zyvor Production Licence · Zyvor AI Labs
         </p>
       </footer>
     </>
