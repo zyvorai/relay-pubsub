@@ -1,5 +1,5 @@
 // Copyright 2026 Zyvor AI Labs · https://zyvor.dev
-// SPDX-License-Identifier: LicenseRef-Zyvor-Production-1.0
+// SPDX-License-Identifier: LicenseRef-Zyvor-Production-2.0
 
 //! Background push dispatcher: polls push subscriptions and POSTs deliveries
 //! to configured push endpoints (Google Pub/Sub push compatibility subset).

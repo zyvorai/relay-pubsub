@@ -1,5 +1,5 @@
 // Copyright 2026 Zyvor AI Labs · https://zyvor.dev
-// SPDX-License-Identifier: LicenseRef-Zyvor-Production-1.0
+// SPDX-License-Identifier: LicenseRef-Zyvor-Production-2.0
 
 //! Self-signed TLS material for a self-serving gateway (no reverse proxy in
 //! front). A cert/key is generated once and persisted on disk so restarts

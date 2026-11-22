@@ -4,7 +4,7 @@ hero:
   title: Source license headers
 ---
 
-All **source files** in this repository carry SPDX metadata (`LicenseRef-Zyvor-Production-1.0`, Zyvor Production License v1.0) at the top of the file.
+All **source files** in this repository carry SPDX metadata (`LicenseRef-Zyvor-Production-2.0`, Zyvor Production Licence v2.0) at the top of the file.
 
 ← [Docs hub](README.md)
 
@@ -14,7 +14,7 @@ All **source files** in this repository carry SPDX metadata (`LicenseRef-Zyvor-P
 
 ```text
 Copyright 2026 Zyvor AI Labs · https://zyvor.dev
-SPDX-License-Identifier: LicenseRef-Zyvor-Production-1.0
+SPDX-License-Identifier: LicenseRef-Zyvor-Production-2.0
 ```
 
 | File type | Prefix |
